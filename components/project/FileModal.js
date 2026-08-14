@@ -44,7 +44,7 @@ export default function FileModal({
     if (!signRes.ok) {
       throw new Error(
         signData.error ||
-          "Could not prepare upload"
+        "Could not prepare upload"
       );
     }
 
@@ -91,7 +91,7 @@ export default function FileModal({
     if (!uploadRes.ok) {
       throw new Error(
         uploadData.error?.message ||
-          "Cloudinary upload failed"
+        "Cloudinary upload failed"
       );
     }
 
@@ -131,7 +131,7 @@ export default function FileModal({
         if (!res.ok) {
           throw new Error(
             data.error ||
-              "Could not update file"
+            "Could not update file"
           );
         }
 
@@ -150,16 +150,24 @@ export default function FileModal({
             },
             body: JSON.stringify({
               name,
+              originalName: selectedFile.name,
               description,
+
               url: uploaded.secure_url,
-              publicId:
-                uploaded.public_id,
-              resourceType:
-                uploaded.resource_type,
-              format:
-                uploaded.format,
-              size:
-                uploaded.bytes,
+              publicId: uploaded.public_id,
+
+              resourceType: uploaded.resource_type,
+              format: uploaded.format,
+              size: uploaded.bytes,
+
+              mimeType: selectedFile.type,
+
+              extension:
+                selectedFile.name.includes(".")
+                  ? selectedFile.name.split(".").pop()
+                  : "",
+
+              editable: false,
             }),
           }
         );
@@ -170,7 +178,7 @@ export default function FileModal({
         if (!res.ok) {
           throw new Error(
             data.error ||
-              "Could not save file"
+            "Could not save file"
           );
         }
 
@@ -236,7 +244,7 @@ export default function FileModal({
                 onChange={(e) =>
                   setSelectedFile(
                     e.target.files?.[0] ||
-                      null
+                    null
                   )
                 }
               />
@@ -290,8 +298,8 @@ export default function FileModal({
                 ? "Saving..."
                 : "Uploading..."
               : editing
-              ? "Save Changes"
-              : "Upload File"}
+                ? "Save Changes"
+                : "Upload File"}
           </button>
         </form>
       </div>

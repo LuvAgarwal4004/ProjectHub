@@ -60,15 +60,15 @@ export async function POST(req, { params }) {
           timestamp,
           folder,
         },
-        process.env.CLOUDINARY_API_SECRET
+        process.env.CLOUD_API_SECRET
       );
 
     return NextResponse.json({
       timestamp,
       signature,
-      apiKey: process.env.CLOUDINARY_API_KEY,
+      apiKey: process.env.CLOUD_API_KEY,
       cloudName:
-        process.env.CLOUDINARY_CLOUD_NAME,
+        process.env.CLOUD_CLOUD_NAME,
       folder,
     });
   } catch (error) {

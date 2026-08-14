@@ -127,20 +127,45 @@ export async function POST(req, { params }) {
         const file =
             await ProjectFile.create({
                 project: id,
+
                 name: body.name.trim(),
+
+                originalName:
+                    body.originalName?.trim() ||
+                    body.name.trim(),
+
+                mimeType:
+                    body.mimeType ||
+                    "application/octet-stream",
+
+                extension:
+                    body.extension || "",
+
+                editable:
+                    Boolean(body.editable),
+
                 description:
                     body.description?.trim() || "",
+
                 url: body.url,
+
                 publicId: body.publicId,
+
                 resourceType:
                     ["image", "raw", "video"].includes(
                         body.resourceType
                     )
                         ? body.resourceType
-                        : "image",
-                format: body.format || "",
-                size: body.size || 0,
-                uploadedBy: session.user.id,
+                        : "raw",
+
+                format:
+                    body.format || "",
+
+                size:
+                    Number(body.size) || 0,
+
+                uploadedBy:
+                    session.user.id,
             });
 
         const populated =

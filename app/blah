@@ -6,3 +6,4507 @@ but the editor cannot send the file as a link
 now here is the twist...admin can send the file link to someone as assign that soomeone as a editor or a viewer...meaning that if the admin selcts "send as editor" while sending the file link then the someone can make changes in the file and that someone when changes anything in that file, then it updates in the real file in the website
 and when admin sends as a viewer then that someone can just see the file but not make changes to it...
 i hope you understand what i mean to say...dont waste our time by talking and explaining, just tell me what to do exactly and send me copypastable codes
+
+
+import mongoose from "mongoose";
+
+const { Schema, model } = mongoose;
+
+const ProjectMemberSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    role: {
+      type: String,
+      enum: ["admin", "editor", "viewer"],
+      default: "viewer",
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+const ProjectSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    members: {
+      type: [ProjectMemberSchema],
+      default: [],
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export default mongoose.models.Project ||
+  model("Project", ProjectSchema);
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/authOptions";
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // 🔒 NEVER return project data without authentication
+    if (!session?.user?.id) {
+      return Response.json(
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    await connectDb();
+
+    const projects = await Project.find({
+      "members.user": session.user.id,
+    })
+      .populate("members.user", "name email image")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return Response.json({
+      success: true,
+      projects,
+    });
+  } catch (error) {
+    console.error("GET PROJECTS ERROR:", error);
+
+    return Response.json(
+      {
+        error: "Failed to fetch projects",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+export async function POST(req) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // 🔒 NEVER allow project creation without authentication
+    if (!session?.user?.id) {
+      return Response.json(
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    await connectDb();
+
+    const body = await req.json();
+
+    const name = String(body.name || "").trim();
+    const description = String(body.description || "").trim();
+
+    if (!name) {
+      return Response.json(
+        {
+          error: "Project name is required",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (name.length > 100) {
+      return Response.json(
+        {
+          error: "Project name is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (description.length > 1000) {
+      return Response.json(
+        {
+          error: "Project description is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const project = await Project.create({
+      name,
+      description,
+
+      createdBy: session.user.id,
+
+      members: [
+        {
+          user: session.user.id,
+          role: "admin",
+        },
+      ],
+    });
+
+    return Response.json(
+      {
+        success: true,
+        project: {
+          id: project._id.toString(),
+        },
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    console.error("CREATE PROJECT ERROR:", error);
+
+    return Response.json(
+      {
+        error: "Failed to create project",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function PATCH(req, { params }) {
+  try {
+    const { id, userId } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const admin =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
+
+    if (
+      !admin ||
+      admin.role !== "admin"
+    ) {
+      return NextResponse.json(
+        { error: "Admin only" },
+        { status: 403 }
+      );
+    }
+
+    if (
+      String(userId) ===
+      String(session.user.id)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Use transfer admin to change your own role",
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+
+    if (
+      !["editor", "viewer"].includes(
+        body.role
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Invalid role" },
+        { status: 400 }
+      );
+    }
+
+    const member =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(userId)
+      );
+
+    if (!member) {
+      return NextResponse.json(
+        { error: "Member not found" },
+        { status: 404 }
+      );
+    }
+
+    member.role = body.role;
+
+    await project.save();
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    const { id, userId } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const admin =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
+
+    if (
+      !admin ||
+      admin.role !== "admin"
+    ) {
+      return NextResponse.json(
+        { error: "Admin only" },
+        { status: 403 }
+      );
+    }
+
+    const target =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(userId)
+      );
+
+    if (!target) {
+      return NextResponse.json(
+        { error: "Member not found" },
+        { status: 404 }
+      );
+    }
+
+    if (target.role === "admin") {
+      return NextResponse.json(
+        {
+          error:
+            "Transfer admin before removing the admin",
+        },
+        { status: 400 }
+      );
+    }
+
+    project.members =
+      project.members.filter(
+        (m) =>
+          String(m.user) !==
+          String(userId)
+      );
+
+    await project.save();
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/projects/[id]/members/[userId]/route.js
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+
+import { authOptions } from "@/lib/authOptions";
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+
+import DashboardUserMenu from "@/components/DashboardUserMenu";
+
+export default async function DashboardPage() {
+  // 🔒 SERVER-SIDE AUTHENTICATION CHECK
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  await connectDb();
+
+  // 🔒 Only fetch projects where THIS USER is a member
+  const projects = await Project.find({
+    "members.user": session.user.id,
+  })
+    .populate("members.user", "name email image")
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
+
+      {/* ================================================== */}
+      {/* HEADER */}
+      {/* ================================================== */}
+
+      <section className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+
+          {/* TOP ROW */}
+          <div className="flex items-start justify-between gap-4">
+
+            {/* LEFT SIDE */}
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-blue-600">
+                ProjectHub
+              </p>
+
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Welcome back, {session.user.name || "there"} 👋
+              </h1>
+
+              <p className="mt-2 hidden text-sm text-slate-500 sm:block">
+                Manage your projects and everything connected to them.
+              </p>
+            </div>
+
+            {/* USER PROFILE */}
+            <div className="shrink-0">
+              <DashboardUserMenu user={session.user} />
+            </div>
+
+          </div>
+
+          {/* MOBILE DESCRIPTION */}
+          <p className="mt-3 text-sm text-slate-500 sm:hidden">
+            Manage your projects and everything connected to them.
+          </p>
+
+        </div>
+      </section>
+
+
+      {/* ================================================== */}
+      {/* DASHBOARD CONTENT */}
+      {/* ================================================== */}
+
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+
+        {/* SECTION HEADER */}
+
+        <div className="mb-8 flex items-end justify-between gap-4">
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 sm:text-sm">
+              Your workspace
+            </p>
+
+            <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
+              Your Projects
+            </h2>
+          </div>
+
+          <p className="shrink-0 text-sm text-slate-500">
+            {projects.length}{" "}
+            {projects.length === 1
+              ? "project"
+              : "projects"}
+          </p>
+
+        </div>
+
+
+        {/* ================================================== */}
+        {/* PROJECTS */}
+        {/* ================================================== */}
+
+        {projects.length === 0 ? (
+          <EmptyProjects />
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+            {projects.map((project) => (
+              <ProjectCard
+                key={project._id.toString()}
+                project={project}
+                userId={session.user.id}
+              />
+            ))}
+
+          </div>
+        )}
+
+      </section>
+
+    </main>
+  );
+}
+
+
+/* ================================================== */
+/* PROJECT CARD */
+/* ================================================== */
+
+function ProjectCard({ project, userId }) {
+  const currentMember = project.members.find(
+    (member) =>
+      member.user?._id?.toString() === userId
+  );
+
+  const admins = project.members.filter(
+    (member) => member.role === "admin"
+  );
+
+  const adminNames = admins
+    .map((member) => member.user?.name)
+    .filter(Boolean);
+
+  const adminName =
+    adminNames.length > 0
+      ? adminNames.join(", ")
+      : "Unknown";
+
+  const role =
+    currentMember?.role || "viewer";
+
+  return (
+    <Link
+      href={`/project/${project._id}`}
+      className="group block"
+    >
+      <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/50">
+
+        {/* TOP */}
+
+        <div className="flex items-start justify-between gap-4">
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
+            📁
+          </div>
+
+          <span
+            className={`
+              rounded-full px-3 py-1 text-xs font-semibold capitalize
+              ${
+                role === "admin"
+                  ? "bg-blue-100 text-blue-700"
+                  : role === "editor"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-100 text-slate-600"
+              }
+            `}
+          >
+            {role}
+          </span>
+
+        </div>
+
+
+        {/* PROJECT NAME */}
+
+        <h3 className="mt-6 truncate text-xl font-bold text-slate-900 transition group-hover:text-blue-600">
+          {project.name}
+        </h3>
+
+
+        {/* DESCRIPTION */}
+
+        <p className="mt-2 line-clamp-2 min-h-[48px] text-sm leading-6 text-slate-500">
+          {project.description ||
+            "No description added yet."}
+        </p>
+
+
+        {/* DETAILS */}
+
+        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">
+              Admin
+            </span>
+
+            <span className="max-w-[180px] truncate font-medium text-slate-700">
+              {adminName}
+            </span>
+          </div>
+
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">
+              Team members
+            </span>
+
+            <span className="font-semibold text-slate-700">
+              {project.members.length}
+            </span>
+          </div>
+
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">
+              Created
+            </span>
+
+            <span className="font-medium text-slate-700">
+              {formatDate(project.createdAt)}
+            </span>
+          </div>
+
+        </div>
+
+
+        {/* OPEN */}
+
+        <div className="mt-6 flex items-center justify-between text-sm font-semibold text-blue-600">
+          <span>Open project</span>
+
+          <span className="transition-transform group-hover:translate-x-1">
+            →
+          </span>
+        </div>
+
+      </div>
+    </Link>
+  );
+}
+
+
+/* ================================================== */
+/* EMPTY STATE */
+/* ================================================== */
+
+function EmptyProjects() {
+  return (
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center sm:py-20">
+
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-50 text-4xl">
+        📁
+      </div>
+
+      <h3 className="mt-6 text-2xl font-bold text-slate-900">
+        No projects yet
+      </h3>
+
+      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+        Create your first ProjectHub workspace and keep your
+        files, links, information and team members together.
+      </p>
+
+      <Link
+        href="/dashboard/create"
+        className="mt-7 inline-flex rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700"
+      >
+        Create Your First Project →
+      </Link>
+
+    </div>
+  );
+}
+
+
+/* ================================================== */
+/* DATE */
+/* ================================================== */
+
+function formatDate(date) {
+  if (!date) return "Unknown";
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date));
+}
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import toast from "react-hot-toast";
+
+import {
+    ArrowLeft,
+    Shield,
+    UserPlus,
+    Trash2,
+    LogOut,
+    Copy,
+    Mail,
+    Link2,
+    MessageCircle,
+} from "lucide-react";
+
+export default function ProjectSettings({
+    project,
+}) {
+    const router = useRouter();
+
+    const [email, setEmail] =
+        useState("");
+
+    const [role, setRole] =
+        useState("viewer");
+
+    const [inviteLoading, setInviteLoading] =
+        useState(false);
+
+    const [invitationLink, setInvitationLink] =
+        useState("");
+
+    async function generateInvitation() {
+        setInviteLoading(true);
+
+        try {
+            const response =
+                await fetch(
+                    \`/api/projects/${project.\_id}/invite\`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+                        },
+                        body: JSON.stringify({
+                            email:
+                                email.trim() || null,
+                            role,
+                        }),
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                    "Failed to generate invitation"
+                );
+            }
+
+            setInvitationLink(
+                data.invitationLink
+            );
+
+            try {
+                await navigator.clipboard.writeText(
+                    data.invitationLink
+                );
+
+                toast.success(
+                    "Invitation link generated and copied!"
+                );
+            } catch {
+                toast.success(
+                    "Invitation link generated!"
+                );
+            }
+        } catch (error) {
+            toast.error(
+                error.message
+            );
+        } finally {
+            setInviteLoading(false);
+        }
+    }
+    async function copyInvitationLink() {
+        if (!invitationLink) return;
+
+        await navigator.clipboard.writeText(
+            invitationLink
+        );
+
+        toast.success(
+            "Invitation link copied!"
+        );
+    }
+
+    function sendInvitationEmail() {
+        if (!invitationLink) {
+            toast.error(
+                "Generate the invitation link first"
+            );
+            return;
+        }
+
+        if (!email.trim()) {
+            toast.error(
+                "Enter an email address first"
+            );
+            return;
+        }
+
+        const subject =
+            encodeURIComponent(
+                \`Invitation to join ${project.name}\`
+            );
+
+        const body =
+            encodeURIComponent(
+                \`Hey,\n\nYou have been invited to join the project "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}\n\nThis invitation expires in 7 days.\`
+            );
+
+        window\.location.href =
+            \`mailto:${email}?subject=${subject}&body=${body}\`;
+    }
+
+    function sendInvitationWhatsApp() {
+        if (!invitationLink) {
+            toast.error(
+                "Generate the invitation link first"
+            );
+            return;
+        }
+
+        const message =
+            encodeURIComponent(
+                \`You've been invited to join "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}\`
+            );
+
+        window\.open(
+            \`[https://wa.me/?text=${message](https://wa.me/?text=${message)}\`,
+            "\_blank"
+        );
+    }
+
+
+    async function changeRole(
+        userId,
+        newRole
+    ) {
+        const res = await fetch(
+            \`/api/projects/${project.\_id}/members/${userId}\`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+                body: JSON.stringify({
+                    role: newRole,
+                }),
+            }
+        );
+
+        const data =
+            await res.json();
+
+        if (!res.ok) {
+            toast.error(
+                data.error ||
+                "Could not change role"
+            );
+            return;
+        }
+
+        toast.success(
+            "Role updated"
+        );
+
+        router.refresh();
+    }
+
+    async function removeMember(
+        userId
+    ) {
+        if (
+            !confirm(
+                "Remove this member from the project?"
+            )
+        ) {
+            return;
+        }
+
+        const res = await fetch(
+            \`/api/projects/${project.\_id}/members/${userId}\`,
+            {
+                method: "DELETE",
+            }
+        );
+
+        const data =
+            await res.json();
+
+        if (!res.ok) {
+            toast.error(
+                data.error ||
+                "Could not remove member"
+            );
+            return;
+        }
+
+        toast.success(
+            "Member removed"
+        );
+
+        router.refresh();
+    }
+
+    async function leaveProject() {
+        if (
+            !confirm(
+                "Leave this project?"
+            )
+        ) {
+            return;
+        }
+
+        const res = await fetch(
+            \`/api/projects/${project.\_id}/leave\`,
+            {
+                method: "POST",
+            }
+        );
+
+        const data =
+            await res.json();
+
+        if (!res.ok) {
+            toast.error(
+                data.error ||
+                "Could not leave project"
+            );
+            return;
+        }
+
+        router.push("/dashboard");
+        router.refresh();
+    }
+
+    async function transferAdmin(
+        userId,
+        name
+    ) {
+        if (
+            !confirm(
+                \`Transfer admin to ${name}? You will become an editor.\`
+            )
+        ) {
+            return;
+        }
+
+        const res = await fetch(
+            \`/api/projects/${project.\_id}/transfer-admin\`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+                body: JSON.stringify({
+                    userId,
+                }),
+            }
+        );
+
+        const data =
+            await res.json();
+
+        if (!res.ok) {
+            toast.error(
+                data.error ||
+                "Could not transfer admin"
+            );
+            return;
+        }
+
+        toast.success(
+            "Admin transferred"
+        );
+
+        router.push(
+            \`/project/${project.\_id}\`
+        );
+
+        router.refresh();
+    }
+
+    return (
+        \<main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+            \<nav className="border-b border-slate-200 bg-white/80 backdrop-blur-xl">
+                \<div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm\:px-6">
+                    \<Link
+                        href={\`/project/${project.\_id}\`}
+                        className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover\:text-blue-600"
+                    \>
+                        \<ArrowLeft size={18} />
+                        Back to Project
+                    \</Link>
+                \</div>
+            \</nav>
+
+            \<div className="mx-auto max-w-5xl px-4 py-8 sm\:px-6 sm\:py-12">
+                \<div>
+                    \<p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+                        Project Settings
+                    \</p>
+
+                    \<h1 className="mt-2 text-3xl font-bold text-slate-900">
+                        {project.name}
+                    \</h1>
+
+                    \<p className="mt-2 text-slate-500">
+                        Manage members, roles and project access.
+                    \</p>
+                \</div>
+
+                {/\* INVITE \*/}
+
+                \<section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-7">
+                    \<div className="flex items-start gap-4">
+                        \<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                            \<UserPlus size={20} />
+                        \</div>
+
+                        \<div>
+                            \<h2 className="font-bold text-slate-900">
+                                Invite Member
+                            \</h2>
+
+                            \<p className="mt-1 text-sm text-slate-500">
+                                Generate an invitation link and
+                                send it by WhatsApp or
+                                anywhere else.
+                            \</p>
+                        \</div>
+                    \</div>
+
+                    {/\* \<div className="mt-6 grid gap-3 md\:grid-cols-[1fr\_160px]">
+                        \<input
+                            value={email}
+                            onChange={(e) =>
+                                setEmail(e.target.value)
+                            }
+                            placeholder="member\@example.com (optional for shared link)"
+                            type="email"
+                            className="min-w-0 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus\:border-blue-500 focus\:ring-4 focus\:ring-blue-100"
+                        />
+
+                        \<select
+                            value={role}
+                            onChange={(e) =>
+                                setRole(e.target.value)
+                            }
+                            className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus\:border-blue-500"
+                        \>
+                            \<option value="viewer">
+                                Viewer
+                            \</option>
+
+                            \<option value="editor">
+                                Editor
+                            \</option>
+                        \</select>
+                    \</div> \*/}
+
+                    \<button
+                        onClick={generateInvitation}
+                        disabled={inviteLoading}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover\:bg-blue-700 disabled\:cursor-not-allowed disabled\:opacity-50"
+                    \>
+                        \<Link2 size={17} />
+
+                        {inviteLoading
+                            ? "Generating..."
+                            : "Generate Invitation Link"}
+                    \</button>
+
+                    {invitationLink && (
+                        \<div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                            \<p className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                                Invitation Link
+                            \</p>
+
+                            \<input
+                                readOnly
+                                value={invitationLink}
+                                className="mt-2 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 outline-none"
+                            />
+
+                            \<div className="mt-3 grid gap-2 sm\:grid-cols-3">
+                                \<button
+                                    onClick={copyInvitationLink}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover\:bg-slate-50"
+                                \>
+                                    \<Copy size={15} />
+                                    Copy
+                                \</button>
+
+                                {/\* \<button
+                                    onClick={sendInvitationEmail}
+                                    disabled={!email.trim()}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover\:bg-slate-50 disabled\:cursor-not-allowed disabled\:opacity-40"
+                                \>
+                                    \<Mail size={15} />
+                                    Email
+                                \</button> \*/}
+
+                                \<button
+                                    onClick={sendInvitationWhatsApp}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover\:bg-blue-700"
+                                \>
+                                    \<MessageCircle size={15} />
+                                    WhatsApp
+                                \</button>
+                            \</div>
+
+                            \<p className="mt-3 text-xs leading-5 text-slate-500">
+                                You can also paste this link directly
+                                into Discord, Telegram, WhatsApp,
+                                etc.
+                            \</p>
+                        \</div>
+                    )}
+                \</section>
+
+                {/\* MEMBERS \*/}
+
+                \<section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-7">
+                    \<div className="flex items-center gap-4">
+                        \<div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                            \<Shield size={20} />
+                        \</div>
+
+                        \<div>
+                            \<h2 className="font-bold text-slate-900">
+                                Members
+                            \</h2>
+
+                            \<p className="mt-1 text-sm text-slate-500">
+                                Change roles or remove members.
+                            \</p>
+                        \</div>
+                    \</div>
+
+                    \<div className="mt-6 space-y-3">
+                        {project.members.map(
+                            (member) => (
+                                \<div
+                                    key={member.user.\_id}
+                                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 lg\:flex-row lg\:items-center lg\:justify-between"
+                                \>
+                                    \<div className="flex min-w-0 items-center gap-3">
+                                        {member.user.image ? (
+                                            \<img
+                                                src={
+                                                    member.user.image
+                                                }
+                                                alt=""
+                                                className="h-10 w-10 shrink-0 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            \<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+                                                {member.user.name
+                                                    ?.charAt(0)
+                                                    ?.toUpperCase() ||
+                                                    "U"}
+                                            \</div>
+                                        )}
+
+                                        \<div className="min-w-0">
+                                            \<p className="truncate font-semibold text-slate-800">
+                                                {
+                                                    member.user
+                                                        .name
+                                                }
+                                            \</p>
+
+                                            \<p className="truncate text-xs text-slate-400">
+                                                {
+                                                    member.user
+                                                        .email
+                                                }
+                                            \</p>
+                                        \</div>
+                                    \</div>
+
+                                    \<div className="flex flex-wrap items-center gap-2">
+                                        {member.role ===
+                                            "admin" ? (
+                                            \<span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold capitalize text-blue-700">
+                                                Admin
+                                            \</span>
+                                        ) : (
+                                            <>
+                                                \<select
+                                                    value={
+                                                        member.role
+                                                    }
+                                                    onChange={(
+                                                        e
+                                                    ) =>
+                                                        changeRole(
+                                                            member.user
+                                                                .\_id,
+                                                            e.target
+                                                                .value
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
+                                                \>
+                                                    \<option value="viewer">
+                                                        Viewer
+                                                    \</option>
+
+                                                    \<option value="editor">
+                                                        Editor
+                                                    \</option>
+                                                \</select>
+
+                                                \<button
+                                                    onClick={() =>
+                                                        transferAdmin(
+                                                            member.user
+                                                                .\_id,
+                                                            member.user
+                                                                .name
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover\:bg-blue-50"
+                                                \>
+                                                    Make Admin
+                                                \</button>
+
+                                                \<button
+                                                    onClick={() =>
+                                                        removeMember(
+                                                            member.user
+                                                                .\_id
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-red-100 p-2 text-red-500 hover\:bg-red-50"
+                                                \>
+                                                    \<Trash2
+                                                        size={15}
+                                                    />
+                                                \</button>
+                                            \</>
+                                        )}
+                                    \</div>
+                                \</div>
+                            )
+                        )}
+                    \</div>
+                \</section>
+
+                {/\* LEAVE \*/}
+
+                \<section className="mt-6 rounded-3xl border border-red-100 bg-white p-5 shadow-sm sm\:p-7">
+                    \<div className="flex flex-col gap-5 sm\:flex-row sm\:items-center sm\:justify-between">
+                        \<div>
+                            \<h2 className="font-bold text-slate-900">
+                                Leave Project
+                            \</h2>
+
+                            \<p className="mt-1 text-sm text-slate-500">
+                                Admin must transfer ownership before leaving.
+                            \</p>
+                        \</div>
+
+                        \<button
+                            onClick={leaveProject}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 hover\:bg-red-50"
+                        \>
+                            \<LogOut size={16} />
+                            Leave Project
+                        \</button>
+                    \</div>
+                \</section>
+            \</div>
+        \</main>
+    );
+}
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+
+import {
+  ArrowLeft,
+  Settings,
+  CheckCircle2,
+  Clock3,
+  ListTodo,
+  Plus,
+  FileText,
+  Link2,
+  Users,
+  Trash2,
+  Download,
+  ExternalLink,
+  Star,
+  Pencil,
+} from "lucide-react";
+
+import CreateTaskModal from "./CreateTaskModal";
+import FileModal from "./FileModal";
+import LinkModal from "./LinkModal";
+
+export default function ProjectWorkspace({
+  project,
+  tasks: initialTasks,
+  files: initialFiles,
+  links: initialLinks,
+  currentMember,
+}) {
+  const router = useRouter();
+
+  const [tab, setTab] =
+    useState("overview");
+
+  const [tasks, setTasks] =
+    useState(initialTasks);
+
+  const [files, setFiles] =
+    useState(initialFiles);
+
+  const [links, setLinks] =
+    useState(initialLinks);
+
+  const [taskModal, setTaskModal] =
+    useState(false);
+
+  const [fileModal, setFileModal] =
+    useState(null);
+
+  const [linkModal, setLinkModal] =
+    useState(false);
+
+  const isAdmin =
+    currentMember.role === "admin";
+
+  const canEditResources =
+    ["admin", "editor"].includes(
+      currentMember.role
+    );
+
+  const totalTasks = tasks.length;
+
+  const completedTasks =
+    tasks.filter(
+      (task) =>
+        task.status === "completed"
+    ).length;
+
+  const pendingTasks =
+    tasks.filter(
+      (task) =>
+        task.status !== "completed"
+    ).length;
+
+  async function refresh() {
+    router.refresh();
+  }
+
+  async function updateTask(
+    taskId,
+    update
+  ) {
+    const res = await fetch(
+      \`/api/projects/${project.\_id}/tasks/${taskId}\`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify(update),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(
+        data.error || "Update failed"
+      );
+      return;
+    }
+
+    setTasks((prev) =>
+      prev.map((task) =>
+        String(task.\_id) ===
+        String(taskId)
+          ? data.task
+          : task
+      )
+    );
+  }
+
+  async function deleteTask(taskId) {
+    if (
+      !confirm(
+        "Delete this task?"
+      )
+    ) {
+      return;
+    }
+
+    const res = await fetch(
+      \`/api/projects/${project.\_id}/tasks/${taskId}\`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(
+        data.error || "Delete failed"
+      );
+      return;
+    }
+
+    setTasks((prev) =>
+      prev.filter(
+        (task) =>
+          String(task.\_id) !==
+          String(taskId)
+      )
+    );
+
+    toast.success("Task deleted");
+  }
+
+  async function deleteFile(fileId) {
+    if (
+      !confirm(
+        "Delete this file?"
+      )
+    ) {
+      return;
+    }
+
+    const res = await fetch(
+      \`/api/projects/${project.\_id}/files/${fileId}\`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(
+        data.error || "Delete failed"
+      );
+      return;
+    }
+
+    setFiles((prev) =>
+      prev.filter(
+        (file) =>
+          String(file.\_id) !==
+          String(fileId)
+      )
+    );
+
+    toast.success("File deleted");
+  }
+
+  async function deleteLink(linkId) {
+    if (
+      !confirm(
+        "Delete this link?"
+      )
+    ) {
+      return;
+    }
+
+    const res = await fetch(
+      \`/api/projects/${project.\_id}/links/${linkId}\`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(
+        data.error || "Delete failed"
+      );
+      return;
+    }
+
+    setLinks((prev) =>
+      prev.filter(
+        (link) =>
+          String(link.\_id) !==
+          String(linkId)
+      )
+    );
+
+    toast.success("Link deleted");
+  }
+
+  return (
+    \<main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
+      {/\* NAVBAR \*/}
+
+      \<nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
+        \<div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm\:px-6">
+          \<Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover\:text-blue-600"
+          \>
+            \<ArrowLeft size={18} />
+
+            \<span className="hidden sm\:inline">
+              Dashboard
+            \</span>
+
+            \<span className="sm\:hidden">
+              Back
+            \</span>
+          \</Link>
+
+          \<Link
+            href="/dashboard"
+            className="text-xl font-bold text-slate-900 sm\:text-2xl"
+          \>
+            Project
+            \<span className="text-blue-600">
+              Hub
+            \</span>
+          \</Link>
+
+          {isAdmin ? (
+            \<Link
+              href={\`/project/${project.\_id}/settings\`}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover\:bg-blue-50 hover\:text-blue-700 sm\:px-4"
+            \>
+              \<Settings size={16} />
+
+              \<span className="hidden sm\:inline">
+                Settings
+              \</span>
+            \</Link>
+          ) : (
+            \<div className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold capitalize text-blue-700">
+              {currentMember.role}
+            \</div>
+          )}
+        \</div>
+      \</nav>
+
+      \<div className="mx-auto max-w-7xl px-4 py-7 sm\:px-6 sm\:py-10">
+        {/\* HEADER \*/}
+
+        \<section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-8">
+          \<div className="flex flex-col gap-6 lg\:flex-row lg\:items-start lg\:justify-between">
+            \<div className="min-w-0">
+              \<p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
+                Project
+              \</p>
+
+              \<h1 className="mt-2 break-words text-3xl font-bold tracking-tight text-slate-900 sm\:text-4xl">
+                {project.name}
+              \</h1>
+
+              \<p className="mt-3 max-w-3xl break-words text-sm leading-7 text-slate-600 sm\:text-base">
+                {project.description ||
+                  "No project description has been added yet."}
+              \</p>
+
+              \<p className="mt-5 text-sm text-slate-500">
+                Admin:{" "}
+                \<span className="font-semibold text-slate-800">
+                  {
+                    project.members.find(
+                      (member) =>
+                        member.role ===
+                        "admin"
+                    )?.user?.name ||
+                    project.createdBy?.name ||
+                    "Unknown"
+                  }
+                \</span>
+              \</p>
+            \</div>
+          \</div>
+        \</section>
+
+        {/\* TASK STATS \*/}
+
+        \<section className="mt-5 grid grid-cols-1 gap-3 sm\:grid-cols-3">
+          \<TaskStat
+            icon={
+              \<ListTodo size={20} />
+            }
+            label="Tasks"
+            value={totalTasks}
+          />
+
+          \<TaskStat
+            icon={
+              \<CheckCircle2 size={20} />
+            }
+            label="Completed"
+            value={completedTasks}
+          />
+
+          \<TaskStat
+            icon={\<Clock3 size={20} />}
+            label="Pending"
+            value={pendingTasks}
+          />
+        \</section>
+
+        {/\* TASKS \*/}
+
+        \<section className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
+          \<div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm\:flex-row sm\:items-center sm\:justify-between sm\:p-6">
+            \<div>
+              \<h2 className="text-xl font-bold text-slate-900">
+                Tasks
+              \</h2>
+
+              \<p className="mt-1 text-sm text-slate-500">
+                Track work, deadlines and priorities.
+              \</p>
+            \</div>
+
+            {isAdmin && (
+              \<button
+                onClick={() =>
+                  setTaskModal(true)
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover\:bg-blue-700"
+              \>
+                \<Plus size={17} />
+                Create Task
+              \</button>
+            )}
+          \</div>
+
+          \<div className="divide-y divide-slate-100">
+            {tasks.length === 0 ? (
+              \<div className="p-10 text-center">
+                \<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  \<ListTodo size={25} />
+                \</div>
+
+                \<h3 className="mt-4 font-bold text-slate-900">
+                  No tasks yet
+                \</h3>
+
+                \<p className="mt-1 text-sm text-slate-500">
+                  Create your first task for this project.
+                \</p>
+              \</div>
+            ) : (
+              tasks.map((task) => (
+                \<TaskRow
+                  key={task.\_id}
+                  task={task}
+                  isAdmin={isAdmin}
+                  onStatusChange={(status) =>
+                    updateTask(
+                      task.\_id,
+                      { status }
+                    )
+                  }
+                  onPriority={() =>
+                    updateTask(
+                      task.\_id,
+                      {
+                        priority:
+                          !task.priority,
+                      }
+                    )
+                  }
+                  onDelete={() =>
+                    deleteTask(task.\_id)
+                  }
+                />
+              ))
+            )}
+          \</div>
+        \</section>
+
+        {/\* TABS \*/}
+
+        \<section className="mt-8">
+          \<div className="overflow-x-auto pb-1">
+            \<div className="flex min-w-max gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+              \<Tab
+                active={
+                  tab === "overview"
+                }
+                onClick={() =>
+                  setTab("overview")
+                }
+                icon={
+                  \<FileText size={17} />
+                }
+                label="Overview"
+              />
+
+              \<Tab
+                active={
+                  tab === "files"
+                }
+                onClick={() =>
+                  setTab("files")
+                }
+                icon={
+                  \<FileText size={17} />
+                }
+                label={\`Files (${files.length})\`}
+              />
+
+              \<Tab
+                active={
+                  tab === "links"
+                }
+                onClick={() =>
+                  setTab("links")
+                }
+                icon={
+                  \<Link2 size={17} />
+                }
+                label={\`Links (${links.length})\`}
+              />
+
+              \<Tab
+                active={
+                  tab === "team"
+                }
+                onClick={() =>
+                  setTab("team")
+                }
+                icon={
+                  \<Users size={17} />
+                }
+                label={\`Team (${project.members.length})\`}
+              />
+            \</div>
+          \</div>
+
+          \<div className="mt-5">
+            {tab === "overview" && (
+              \<Overview
+                project={project}
+                tasks={tasks}
+                files={files}
+                links={links}
+              />
+            )}
+
+            {tab === "files" && (
+              \<FilesTab
+                files={files}
+                isAdmin={isAdmin}
+                canEditResources={
+                  canEditResources
+                }
+                onUpload={() =>
+                  setFileModal("create")
+                }
+                onEdit={(file) =>
+                  setFileModal(file)
+                }
+                onDelete={deleteFile}
+              />
+            )}
+
+            {tab === "links" && (
+              \<LinksTab
+                links={links}
+                canEditResources={
+                  canEditResources
+                }
+                onCreate={() =>
+                  setLinkModal(true)
+                }
+                onDelete={deleteLink}
+              />
+            )}
+
+            {tab === "team" && (
+              \<TeamTab
+                members={project.members}
+              />
+            )}
+          \</div>
+        \</section>
+      \</div>
+
+      {taskModal && (
+        \<CreateTaskModal
+          project={project}
+          onClose={() =>
+            setTaskModal(false)
+          }
+          onCreated={(task) => {
+            setTasks((prev) => [
+              task,
+              ...prev,
+            ]);
+
+            setTaskModal(false);
+            toast.success(
+              "Task created"
+            );
+          }}
+        />
+      )}
+
+      {fileModal && (
+        \<FileModal
+          project={project}
+          file={
+            fileModal === "create"
+              ? null
+              : fileModal
+          }
+          onClose={() =>
+            setFileModal(null)
+          }
+          onCreated={(file) => {
+            setFiles((prev) => [
+              file,
+              ...prev,
+            ]);
+
+            setFileModal(null);
+            toast.success(
+              "File uploaded"
+            );
+          }}
+          onUpdated={(file) => {
+            setFiles((prev) =>
+              prev.map((item) =>
+                String(item.\_id) ===
+                String(file.\_id)
+                  ? file
+                  : item
+              )
+            );
+
+            setFileModal(null);
+            toast.success(
+              "File updated"
+            );
+          }}
+        />
+      )}
+
+      {linkModal && (
+        \<LinkModal
+          project={project}
+          onClose={() =>
+            setLinkModal(false)
+          }
+          onCreated={(link) => {
+            setLinks((prev) => [
+              link,
+              ...prev,
+            ]);
+
+            setLinkModal(false);
+            toast.success(
+              "Link added"
+            );
+          }}
+        />
+      )}
+    \</main>
+  );
+}
+
+function TaskStat({
+  icon,
+  label,
+  value,
+}) {
+  return (
+    \<div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      \<div className="flex items-center justify-between">
+        \<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          {icon}
+        \</div>
+
+        \<span className="text-2xl font-bold text-slate-900">
+          {value}
+        \</span>
+      \</div>
+
+      \<p className="mt-4 text-sm font-semibold text-slate-700">
+        {label}
+      \</p>
+    \</div>
+  );
+}
+
+function TaskRow({
+  task,
+  isAdmin,
+  onStatusChange,
+  onPriority,
+  onDelete,
+}) {
+  const assignee =
+    task.assignees?.[0];
+
+  return (
+    \<div className="p-5 sm\:p-6">
+      \<div className="flex flex-col gap-4 lg\:flex-row lg\:items-center lg\:justify-between">
+        \<div className="flex min-w-0 gap-3">
+          \<div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300">
+            {task.status ===
+              "completed" && (
+              \<CheckCircle2
+                size={14}
+                className="text-green-600"
+              />
+            )}
+          \</div>
+
+          \<div className="min-w-0">
+            \<div className="flex flex-wrap items-center gap-2">
+              \<h3
+                className={\`break-words font-semibold ${
+                  task.status ===
+                  "completed"
+                    ? "text-slate-400 line-through"
+                    : "text-slate-900"
+                }\`}
+              \>
+                {task.title}
+              \</h3>
+
+              {task.priority && (
+                \<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                  \<Star
+                    size={11}
+                    fill="currentColor"
+                  />
+                  Priority
+                \</span>
+              )}
+            \</div>
+
+            \<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+              \<span>
+                {assignee?.name ||
+                  "Unassigned"}
+              \</span>
+
+              {task.deadlineDate && (
+                \<span>
+                  Due{" "}
+                  {task.deadlineDate}
+                  {task.deadlineTime
+                    ? \` · ${task.deadlineTime}\`
+                    : ""}
+                \</span>
+              )}
+            \</div>
+          \</div>
+        \</div>
+
+        \<div className="flex flex-wrap items-center gap-2">
+          {isAdmin ? (
+            <>
+              \<select
+                value={task.status}
+                onChange={(e) =>
+                  onStatusChange(
+                    e.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus\:border-blue-500"
+              \>
+                \<option value="todo">
+                  To-do
+                \</option>
+                \<option value="in\_progress">
+                  In Progress
+                \</option>
+                \<option value="pending">
+                  Pending
+                \</option>
+                \<option value="completed">
+                  Completed
+                \</option>
+              \</select>
+
+              \<button
+                onClick={onPriority}
+                title="Toggle priority"
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover\:bg-slate-50"
+              \>
+                \<Star
+                  size={16}
+                  fill={
+                    task.priority
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              \</button>
+
+              \<button
+                onClick={onDelete}
+                className="rounded-xl border border-red-100 p-2 text-red-500 hover\:bg-red-50"
+              \>
+                \<Trash2
+                  size={16}
+                />
+              \</button>
+            \</>
+          ) : (
+            \<StatusBadge
+              status={task.status}
+            />
+          )}
+        \</div>
+      \</div>
+    \</div>
+  );
+}
+
+function StatusBadge({
+  status,
+}) {
+  const labels = {
+    todo: "To-do",
+    in\_progress: "In Progress",
+    pending: "Pending",
+    completed: "Completed",
+  };
+
+  return (
+    \<span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+      {labels[status] ||
+        status}
+    \</span>
+  );
+}
+
+function Tab({
+  active,
+  onClick,
+  icon,
+  label,
+}) {
+  return (
+    \<button
+      onClick={onClick}
+      className={\`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+        active
+          ? "bg-blue-600 text-white"
+          : "text-slate-600 hover\:bg-slate-100"
+      }\`}
+    \>
+      {icon}
+      {label}
+    \</button>
+  );
+}
+
+function Overview({
+  project,
+  tasks,
+  files,
+  links,
+}) {
+  return (
+    \<div className="grid gap-5 lg\:grid-cols-3">
+      \<div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg\:col-span-2">
+        \<h2 className="text-lg font-bold text-slate-900">
+          Project Overview
+        \</h2>
+
+        \<p className="mt-2 text-sm leading-6 text-slate-600">
+          {project.description ||
+            "No description available."}
+        \</p>
+
+        \<div className="mt-6 grid gap-4 sm\:grid-cols-2">
+          \<Info
+            label="Created By"
+            value={
+              project.createdBy
+                ?.name || "Unknown"
+            }
+          />
+
+          \<Info
+            label="Members"
+            value={
+              project.members.length
+            }
+          />
+
+          \<Info
+            label="Files"
+            value={files.length}
+          />
+
+          \<Info
+            label="Links"
+            value={links.length}
+          />
+        \</div>
+      \</div>
+
+      \<div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        \<h2 className="font-bold text-slate-900">
+          Task Progress
+        \</h2>
+
+        \<div className="mt-6">
+          \<div className="flex items-end justify-between">
+            \<span className="text-sm text-slate-500">
+              Completed
+            \</span>
+
+            \<span className="font-bold text-slate-900">
+              {
+                tasks.filter(
+                  (task) =>
+                    task.status ===
+                    "completed"
+                ).length
+              }
+              /{tasks.length}
+            \</span>
+          \</div>
+
+          \<div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+            \<div
+              className="h-full rounded-full bg-blue-600"
+              style={{
+                width: \`${
+                  tasks.length
+                    ? (tasks.filter(
+                        (task) =>
+                          task.status ===
+                          "completed"
+                      ).length /
+                        tasks.length) \*
+                      100
+                    : 0
+                }%\`,
+              }}
+            />
+          \</div>
+        \</div>
+      \</div>
+    \</div>
+  );
+}
+
+function Info({
+  label,
+  value,
+}) {
+  return (
+    \<div className="rounded-2xl bg-slate-50 p-4">
+      \<p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        {label}
+      \</p>
+
+      \<p className="mt-2 break-words font-semibold text-slate-800">
+        {value}
+      \</p>
+    \</div>
+  );
+}
+
+function FilesTab({
+  files,
+  isAdmin,
+  canEditResources,
+  onUpload,
+  onEdit,
+  onDelete,
+}) {
+  return (
+    \<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-6">
+      \<div className="flex flex-col gap-4 sm\:flex-row sm\:items-center sm\:justify-between">
+        \<div>
+          \<h2 className="text-xl font-bold text-slate-900">
+            Files
+          \</h2>
+
+          \<p className="mt-1 text-sm text-slate-500">
+            Shared project resources.
+          \</p>
+        \</div>
+
+        {canEditResources && (
+          \<button
+            onClick={onUpload}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover\:bg-blue-700"
+          \>
+            \<Plus size={17} />
+            Upload File
+          \</button>
+        )}
+      \</div>
+
+      \<div className="mt-6 grid gap-3">
+        {files.length === 0 ? (
+          \<Empty
+            icon={\<FileText size={24} />}
+            text="No files yet"
+          />
+        ) : (
+          files.map((file) => {
+            const downloadUrl =
+              file.url?.includes(
+                "/upload/"
+              )
+                ? file.url.replace(
+                    "/upload/",
+                    "/upload/fl\_attachment/"
+                  )
+                : file.url;
+
+            return (
+              \<div
+                key={file.\_id}
+                className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm\:flex-row sm\:items-center sm\:justify-between"
+              \>
+                {/\* FILE INFO \*/}
+
+                \<div className="flex min-w-0 gap-3">
+                  \<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    \<FileText size={20} />
+                  \</div>
+
+                  \<div className="min-w-0">
+                    \<h3 className="break-words font-semibold text-slate-900">
+                      {file.name}
+                    \</h3>
+
+                    {file.description && (
+                      \<p className="mt-1 break-words text-sm text-slate-500">
+                        {file.description}
+                      \</p>
+                    )}
+
+                    \<p className="mt-1 text-xs text-slate-400">
+                      Uploaded by{" "}
+                      {file.uploadedBy?.name ||
+                        "Unknown"}
+                    \</p>
+                  \</div>
+                \</div>
+
+                {/\* ACTIONS \*/}
+
+                \<div className="flex shrink-0 flex-wrap gap-2">
+                  {/\* OPEN \*/}
+
+                  \<a
+                    href={file.url}
+                    target="\_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover\:bg-slate-50"
+                  \>
+                    \<ExternalLink
+                      size={14}
+                    />
+
+                    Open
+                  \</a>
+
+                  {/\* DOWNLOAD \*/}
+
+                  \<a
+                    href={downloadUrl}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover\:bg-slate-50"
+                  \>
+                    \<Download
+                      size={14}
+                    />
+
+                    Download
+                  \</a>
+
+                  {/\* EDIT — ADMIN ONLY \*/}
+
+                  {isAdmin && (
+                    \<button
+                      onClick={() =>
+                        onEdit(file)
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover\:bg-slate-50"
+                    \>
+                      \<Pencil
+                        size={14}
+                      />
+
+                      Edit
+                    \</button>
+                  )}
+
+                  {/\* DELETE — ADMIN + EDITOR \*/}
+
+                  {canEditResources && (
+                    \<button
+                      onClick={() =>
+                        onDelete(file.\_id)
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-xs font-semibold text-red-500 hover\:bg-red-50"
+                    \>
+                      \<Trash2
+                        size={14}
+                      />
+
+                      Delete
+                    \</button>
+                  )}
+                \</div>
+              \</div>
+            );
+          })
+        )}
+      \</div>
+    \</div>
+  );
+}
+
+function LinksTab({
+  links,
+  canEditResources,
+  onCreate,
+  onDelete,
+}) {
+  return (
+    \<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-6">
+      \<div className="flex flex-col gap-4 sm\:flex-row sm\:items-center sm\:justify-between">
+        \<div>
+          \<h2 className="text-xl font-bold text-slate-900">
+            Links
+          \</h2>
+
+          \<p className="mt-1 text-sm text-slate-500">
+            Important URLs for the project.
+          \</p>
+        \</div>
+
+        {canEditResources && (
+          \<button
+            onClick={onCreate}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover\:bg-blue-700"
+          \>
+            \<Plus size={17} />
+            Add Link
+          \</button>
+        )}
+      \</div>
+
+      \<div className="mt-6 grid gap-3">
+        {links.length === 0 ? (
+          \<Empty
+            icon={\<Link2 size={24} />}
+            text="No links yet"
+          />
+        ) : (
+          links.map((link) => (
+            \<div
+              key={link.\_id}
+              className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm\:flex-row sm\:items-center sm\:justify-between"
+            \>
+              \<div className="flex min-w-0 gap-3">
+                \<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  \<Link2
+                    size={20}
+                  />
+                \</div>
+
+                \<div className="min-w-0">
+                  \<h3 className="break-words font-semibold text-slate-900">
+                    {link.title}
+                  \</h3>
+
+                  {link.description && (
+                    \<p className="mt-1 break-words text-sm text-slate-500">
+                      {link.description}
+                    \</p>
+                  )}
+
+                  \<p className="mt-1 break-all text-xs text-blue-600">
+                    {link.url}
+                  \</p>
+                \</div>
+              \</div>
+
+              \<div className="flex shrink-0 gap-2">
+                \<a
+                  href={link.url}
+                  target="\_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover\:bg-slate-50"
+                \>
+                  \<ExternalLink
+                    size={14}
+                  />
+                  Open
+                \</a>
+
+                {canEditResources && (
+                  \<button
+                    onClick={() =>
+                      onDelete(
+                        link.\_id
+                      )
+                    }
+                    className="rounded-xl border border-red-100 p-2 text-red-500 hover\:bg-red-50"
+                  \>
+                    \<Trash2
+                      size={15}
+                    />
+                  \</button>
+                )}
+              \</div>
+            \</div>
+          ))
+        )}
+      \</div>
+    \</div>
+  );
+}
+
+function TeamTab({
+  members,
+}) {
+  return (
+    \<div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm\:p-6">
+      \<h2 className="text-xl font-bold text-slate-900">
+        Team
+      \</h2>
+
+      \<p className="mt-1 text-sm text-slate-500">
+        Everyone who has access to this project.
+      \</p>
+
+      \<div className="mt-6 grid gap-3 md\:grid-cols-2">
+        {members.map((member) => (
+          \<div
+            key={member.user.\_id}
+            className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4"
+          \>
+            \<div className="flex min-w-0 items-center gap-3">
+              {member.user.image ? (
+                \<img
+                  src={member.user.image}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                \<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+                  {member.user.name
+                    ?.charAt(0)
+                    ?.toUpperCase() ||
+                    "U"}
+                \</div>
+              )}
+
+              \<div className="min-w-0">
+                \<p className="truncate font-semibold text-slate-800">
+                  {member.user.name}
+                \</p>
+
+                \<p className="truncate text-xs text-slate-400">
+                  {member.user.email}
+                \</p>
+              \</div>
+            \</div>
+
+            \<span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-600">
+              {member.role}
+            \</span>
+          \</div>
+        ))}
+      \</div>
+    \</div>
+  );
+}
+
+function Empty({
+  icon,
+  text,
+}) {
+  return (
+    \<div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+      \<div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+        {icon}
+      \</div>
+
+      \<p className="mt-3 text-sm font-semibold text-slate-500">
+        {text}
+      \</p>
+    \</div>
+  );
+}
+"use client";
+
+import { useState } from "react";
+import { X, UploadCloud } from "lucide-react";
+
+export default function FileModal({
+  project,
+  file,
+  onClose,
+  onCreated,
+  onUpdated,
+}) {
+  const editing = Boolean(file);
+
+  const [name, setName] =
+    useState(file?.name || "");
+
+  const [description, setDescription] =
+    useState(file?.description || "");
+
+  const [selectedFile, setSelectedFile] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  async function uploadFile() {
+    if (!selectedFile) {
+      throw new Error(
+        "Select a file first"
+      );
+    }
+
+    const signRes = await fetch(
+      `/api/projects/${project._id}/files/sign`,
+      {
+        method: "POST",
+      }
+    );
+
+    const signData =
+      await signRes.json();
+
+    if (!signRes.ok) {
+      throw new Error(
+        signData.error ||
+          "Could not prepare upload"
+      );
+    }
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      selectedFile
+    );
+
+    formData.append(
+      "api_key",
+      signData.apiKey
+    );
+
+    formData.append(
+      "timestamp",
+      signData.timestamp
+    );
+
+    formData.append(
+      "signature",
+      signData.signature
+    );
+
+    formData.append(
+      "folder",
+      signData.folder
+    );
+
+    const uploadRes =
+      await fetch(
+        `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+    const uploadData =
+      await uploadRes.json();
+
+    if (!uploadRes.ok) {
+      throw new Error(
+        uploadData.error?.message ||
+          "Cloudinary upload failed"
+      );
+    }
+
+    return uploadData;
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Enter a file name");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (editing) {
+        const res = await fetch(
+          `/api/projects/${project._id}/files/${file._id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              name,
+              description,
+            }),
+          }
+        );
+
+        const data =
+          await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              "Could not update file"
+          );
+        }
+
+        onUpdated(data.file);
+      } else {
+        const uploaded =
+          await uploadFile();
+
+        const res = await fetch(
+          `/api/projects/${project._id}/files`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              name,
+              description,
+              url: uploaded.secure_url,
+              publicId:
+                uploaded.public_id,
+              resourceType:
+                uploaded.resource_type,
+              format:
+                uploaded.format,
+              size:
+                uploaded.bytes,
+            }),
+          }
+        );
+
+        const data =
+          await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              "Could not save file"
+          );
+        }
+
+        onCreated(data.file);
+      }
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              {editing
+                ? "Edit File"
+                : "Upload File"}
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {editing
+                ? "Change the file name or description."
+                : "Upload a project resource and add its details."}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form
+          onSubmit={submit}
+          className="mt-6 space-y-5"
+        >
+          {!editing && (
+            <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 p-7 text-center hover:border-blue-400 hover:bg-blue-50/30">
+              <UploadCloud
+                size={30}
+                className="mx-auto text-blue-600"
+              />
+
+              <p className="mt-3 font-semibold text-slate-800">
+                {selectedFile
+                  ? selectedFile.name
+                  : "Choose a file"}
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Documents, images, ZIPs and other project files
+              </p>
+
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) =>
+                  setSelectedFile(
+                    e.target.files?.[0] ||
+                      null
+                  )
+                }
+              />
+            </label>
+          )}
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              File name
+            </label>
+
+            <input
+              value={name}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
+              placeholder="Project proposal.pdf"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Description
+            </label>
+
+            <textarea
+              value={description}
+              onChange={(e) =>
+                setDescription(
+                  e.target.value
+                )
+              }
+              placeholder="What is this file about?"
+              rows={4}
+              className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <button
+            disabled={
+              loading ||
+              !name.trim() ||
+              (!editing &&
+                !selectedFile)
+            }
+            className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading
+              ? editing
+                ? "Saving..."
+                : "Uploading..."
+              : editing
+              ? "Save Changes"
+              : "Upload File"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import toast from "react-hot-toast";
+
+export default function CreateProjectForm() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error("Project name is required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to create project");
+        return;
+      }
+
+      toast.success("Project created successfully!");
+
+      router.push("/dashboard");
+      router.refresh();
+
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-6 py-12">
+
+      <div className="mx-auto max-w-3xl">
+
+        {/* BACK */}
+
+        <Link
+          href="/dashboard"
+          className="text-sm font-medium text-slate-500 transition hover:text-blue-600"
+        >
+          ← Back to dashboard
+        </Link>
+
+
+        {/* HEADER */}
+
+        <div className="mt-8">
+
+          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+            New workspace
+          </p>
+
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">
+            Create a project
+          </h1>
+
+          <p className="mt-3 text-slate-500">
+            Start a new workspace for your project and bring
+            everything together in one place.
+          </p>
+
+        </div>
+
+
+        {/* FORM */}
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/40 sm:p-8"
+        >
+
+          {/* NAME */}
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Project name
+            </label>
+
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              type="text"
+              maxLength={100}
+              placeholder="e.g. Your Project Name"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            />
+
+            <p className="mt-2 text-xs text-slate-400">
+              Give your project a clear and recognizable name.
+            </p>
+          </div>
+
+
+          {/* DESCRIPTION */}
+
+          <div className="mt-7">
+
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Description
+            </label>
+
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={1000}
+              rows={6}
+              placeholder="What is this project about?"
+              className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            />
+
+          </div>
+
+
+          {/* INFO */}
+
+          <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+
+            <div className="flex gap-3">
+
+              <div className="text-xl">
+                💡
+              </div>
+
+              <div>
+
+                <p className="font-semibold text-blue-900">
+                  You're the first admin
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-blue-700">
+                  You will automatically become an Admin of this
+                  project. You can invite other members and manage
+                  their roles after creating the project.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* BUTTONS */}
+
+          <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
+            <Link
+              href="/dashboard"
+              className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Cancel
+            </Link>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-2xl bg-blue-600 px-7 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading
+                ? "Creating..."
+                : "Create Project →"}
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </main>
+  );
+}
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+
+import { authOptions } from "@/lib/authOptions";
+import CreateProjectForm from "./CreateProjectForm";
+export default async function CreateProjectPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  return <CreateProjectForm />;
+}
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/authOptions";
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // 🔒 NEVER return project data without authentication
+    if (!session?.user?.id) {
+      return Response.json(
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    await connectDb();
+
+    const projects = await Project.find({
+      "members.user": session.user.id,
+    })
+      .populate("members.user", "name email image")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return Response.json({
+      success: true,
+      projects,
+    });
+  } catch (error) {
+    console.error("GET PROJECTS ERROR:", error);
+
+    return Response.json(
+      {
+        error: "Failed to fetch projects",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+export async function POST(req) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // 🔒 NEVER allow project creation without authentication
+    if (!session?.user?.id) {
+      return Response.json(
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    await connectDb();
+
+    const body = await req.json();
+
+    const name = String(body.name || "").trim();
+    const description = String(body.description || "").trim();
+
+    if (!name) {
+      return Response.json(
+        {
+          error: "Project name is required",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (name.length > 100) {
+      return Response.json(
+        {
+          error: "Project name is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (description.length > 1000) {
+      return Response.json(
+        {
+          error: "Project description is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const project = await Project.create({
+      name,
+      description,
+
+      createdBy: session.user.id,
+
+      members: [
+        {
+          user: session.user.id,
+          role: "admin",
+        },
+      ],
+    });
+
+    return Response.json(
+      {
+        success: true,
+        project: {
+          id: project._id.toString(),
+        },
+      },
+      {
+        status: 201,
+      }
+    );
+  } catch (error) {
+    console.error("CREATE PROJECT ERROR:", error);
+
+    return Response.json(
+      {
+        error: "Failed to create project",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+i dont have app/api/projects/[id]/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function POST(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const currentAdmin =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
+
+    if (
+      !currentAdmin ||
+      currentAdmin.role !== "admin"
+    ) {
+      return NextResponse.json(
+        { error: "Admin only" },
+        { status: 403 }
+      );
+    }
+
+    const { userId } =
+      await req.json();
+
+    const newAdmin =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(userId)
+      );
+
+    if (!newAdmin) {
+      return NextResponse.json(
+        { error: "Member not found" },
+        { status: 404 }
+      );
+    }
+
+    if (
+      String(userId) ===
+      String(session.user.id)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You are already the admin",
+        },
+        { status: 400 }
+      );
+    }
+
+    currentAdmin.role = "editor";
+    newAdmin.role = "admin";
+
+    await project.save();
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/projects/transfer-admin/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+import ProjectFile from "@/models/ProjectFile";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function GET(req, { params }) {
+    try {
+        const { id } = await params;
+
+        const session =
+            await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        await connectDb();
+
+        const project =
+            await Project.findById(id);
+
+        if (!project) {
+            return NextResponse.json(
+                { error: "Project not found" },
+                { status: 404 }
+            );
+        }
+
+        const member = project.members.find(
+            (m) =>
+                String(m.user) ===
+                String(session.user.id)
+        );
+
+        if (!member) {
+            return NextResponse.json(
+                { error: "Access denied" },
+                { status: 403 }
+            );
+        }
+
+        const files =
+            await ProjectFile.find({
+                project: id,
+            })
+                .populate(
+                    "uploadedBy",
+                    "name email image"
+                )
+                .sort({ createdAt: -1 })
+                .lean();
+
+        return NextResponse.json({
+            success: true,
+            files,
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(req, { params }) {
+    try {
+        const { id } = await params;
+
+        const session =
+            await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        await connectDb();
+
+        const project =
+            await Project.findById(id);
+
+        if (!project) {
+            return NextResponse.json(
+                { error: "Project not found" },
+                { status: 404 }
+            );
+        }
+
+        const member = project.members.find(
+            (m) =>
+                String(m.user) ===
+                String(session.user.id)
+        );
+
+        if (
+            !member ||
+            !["admin", "editor"].includes(member.role)
+        ) {
+            return NextResponse.json(
+                { error: "You cannot upload files" },
+                { status: 403 }
+            );
+        }
+
+        const body = await req.json();
+
+        if (
+            !body.name?.trim() ||
+            !body.url ||
+            !body.publicId
+        ) {
+            return NextResponse.json(
+                { error: "Missing file information" },
+                { status: 400 }
+            );
+        }
+
+        const file =
+            await ProjectFile.create({
+                project: id,
+                name: body.name.trim(),
+                description:
+                    body.description?.trim() || "",
+                url: body.url,
+                publicId: body.publicId,
+                resourceType:
+                    ["image", "raw", "video"].includes(
+                        body.resourceType
+                    )
+                        ? body.resourceType
+                        : "image",
+                format: body.format || "",
+                size: body.size || 0,
+                uploadedBy: session.user.id,
+            });
+
+        const populated =
+            await ProjectFile.findById(file._id)
+                .populate(
+                    "uploadedBy",
+                    "name email image"
+                )
+                .lean();
+
+        return NextResponse.json({
+            success: true,
+            file: populated,
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+        );
+    }
+}
+app/api/projects/[id]/files/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+import cloudinary from "@/lib/cloudinary";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function POST(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const member = project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(session.user.id)
+    );
+
+    if (
+      !member ||
+      !["admin", "editor"].includes(member.role)
+    ) {
+      return NextResponse.json(
+        { error: "You cannot upload files" },
+        { status: 403 }
+      );
+    }
+
+    const timestamp =
+      Math.round(new Date().getTime() / 1000);
+
+    const folder = `projecthub/projects/${id}`;
+
+    const signature =
+      cloudinary.utils.api_sign_request(
+        {
+          timestamp,
+          folder,
+        },
+        process.env.CLOUDINARY_API_SECRET
+      );
+
+    return NextResponse.json({
+      timestamp,
+      signature,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName:
+        process.env.CLOUDINARY_CLOUD_NAME,
+      folder,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+app/api/projects/[id]/files/sign/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDB from "@/db/connectDb";
+import Project from "@/models/Project";
+import ProjectFile from "@/models/ProjectFile";
+import cloudinary from "@/lib/cloudinary";
+
+import { authOptions } from "@/lib/authOptions";
+
+async function getMembership(
+  projectId,
+  userId
+) {
+  const project =
+    await Project.findById(projectId);
+
+  if (!project) {
+    return null;
+  }
+
+  const member =
+    project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(userId)
+    );
+
+  if (!member) {
+    return null;
+  }
+
+  return {
+    project,
+    member,
+  };
+}
+
+function getResourceType(file) {
+  if (
+    ["image", "raw", "video"].includes(
+      file.resourceType
+    )
+  ) {
+    return file.resourceType;
+  }
+
+  // Fallback for old records
+  // that stored "auto".
+  const url =
+    file.url || "";
+
+  if (
+    url.includes("/raw/upload/")
+  ) {
+    return "raw";
+  }
+
+  if (
+    url.includes("/video/upload/")
+  ) {
+    return "video";
+  }
+
+  return "image";
+}
+
+/* =========================
+   PATCH
+   ADMIN ONLY
+========================= */
+
+export async function PATCH(
+  request,
+  { params }
+) {
+  try {
+    const { id, fileId } =
+      await params;
+
+    const session =
+      await getServerSession(
+        authOptions
+      );
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
+    const membership =
+      await getMembership(
+        id,
+        session.user.id
+      );
+
+    if (
+      !membership ||
+      membership.member.role !==
+        "admin"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Only the admin can edit file details",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body =
+      await request.json();
+
+    const name =
+      body.name?.trim();
+
+    const description =
+      body.description?.trim() || "";
+
+    if (!name) {
+      return NextResponse.json(
+        {
+          error:
+            "File name is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const file =
+      await ProjectFile.findOneAndUpdate(
+        {
+          _id: fileId,
+          project: id,
+        },
+        {
+          $set: {
+            name,
+            description,
+          },
+        },
+        {
+          new: true,
+        }
+      )
+        .populate(
+          "uploadedBy",
+          "name email image"
+        )
+        .lean();
+
+    if (!file) {
+      return NextResponse.json(
+        {
+          error: "File not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      file,
+    });
+  } catch (error) {
+    console.error(
+      "EDIT FILE ERROR:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to edit file",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/* =========================
+   DELETE
+   ADMIN + EDITOR
+========================= */
+
+export async function DELETE(
+  request,
+  { params }
+) {
+  try {
+    const { id, fileId } =
+      await params;
+
+    const session =
+      await getServerSession(
+        authOptions
+      );
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
+    const membership =
+      await getMembership(
+        id,
+        session.user.id
+      );
+
+    if (
+      !membership ||
+      !["admin", "editor"].includes(
+        membership.member.role
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You cannot delete files",
+        },
+        { status: 403 }
+      );
+    }
+
+    const file =
+      await ProjectFile.findOne({
+        _id: fileId,
+        project: id,
+      });
+
+    if (!file) {
+      return NextResponse.json(
+        {
+          error: "File not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    const resourceType =
+      getResourceType(file);
+
+    try {
+      await cloudinary.uploader.destroy(
+        file.publicId,
+        {
+          resource_type:
+            resourceType,
+          type: "upload",
+          invalidate: true,
+        }
+      );
+    } catch (cloudinaryError) {
+      console.error(
+        "CLOUDINARY DELETE ERROR:",
+        cloudinaryError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Could not delete file from storage",
+        },
+        { status: 500 }
+      );
+    }
+
+    await file.deleteOne();
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(
+      "DELETE FILE ERROR:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to delete file",
+      },
+      { status: 500 }
+    );
+  }
+}
+app/api/projects/[id]/files/[fileId]/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+import ProjectLink from "@/models/ProjectLink";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function DELETE(req, { params }) {
+  try {
+    const { id, linkId } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const member = project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(session.user.id)
+    );
+
+    if (
+      !member ||
+      !["admin", "editor"].includes(member.role)
+    ) {
+      return NextResponse.json(
+        { error: "You cannot delete links" },
+        { status: 403 }
+      );
+    }
+
+    const deleted =
+      await ProjectLink.findOneAndDelete({
+        _id: linkId,
+        project: id,
+      });
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: "Link not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/projects/[id]/links/[linkId]/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import Project from "@/models/Project";
+import ProjectLink from "@/models/ProjectLink";
+
+import { authOptions } from "@/lib/authOptions";
+
+export async function GET(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const member = project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(session.user.id)
+    );
+
+    if (!member) {
+      return NextResponse.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
+
+    const links =
+      await ProjectLink.find({
+        project: id,
+      })
+        .populate(
+          "addedBy",
+          "name email image"
+        )
+        .sort({ createdAt: -1 })
+        .lean();
+
+    return NextResponse.json({
+      success: true,
+      links,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDb();
+
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    const member = project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(session.user.id)
+    );
+
+    if (
+      !member ||
+      !["admin", "editor"].includes(member.role)
+    ) {
+      return NextResponse.json(
+        { error: "You cannot add links" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+
+    if (
+      !body.title?.trim() ||
+      !body.url?.trim()
+    ) {
+      return NextResponse.json(
+        { error: "Title and URL are required" },
+        { status: 400 }
+      );
+    }
+
+    let url = body.url.trim();
+
+    if (
+      !url.startsWith("http://") &&
+      !url.startsWith("https://")
+    ) {
+      url = `https://${url}`;
+    }
+
+    const link =
+      await ProjectLink.create({
+        project: id,
+        title: body.title.trim(),
+        url,
+        description:
+          body.description?.trim() || "",
+        addedBy: session.user.id,
+      });
+
+    const populated =
+      await ProjectLink.findById(link._id)
+        .populate(
+          "addedBy",
+          "name email image"
+        )
+        .lean();
+
+    return NextResponse.json({
+      success: true,
+      link: populated,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/projects/[id]/links/route.js
+import mongoose from "mongoose";
+
+const ProjectLinkSchema = new mongoose.Schema(
+  {
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+      index: true,
+    },
+
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export default mongoose.models.ProjectLink ||
+  mongoose.model("ProjectLink", ProjectLinkSchema);
+"use client";
+
+import { useState } from "react";
+import { X } from "lucide-react";
+
+export default function LinkModal({
+  project,
+  onClose,
+  onCreated,
+}) {
+  const [title, setTitle] =
+    useState("");
+
+  const [url, setUrl] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+
+    setLoading(true);
+
+    const res = await fetch(
+      `/api/projects/${project._id}/links`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          url,
+          description,
+        }),
+      }
+    );
+
+    const data =
+      await res.json();
+
+    setLoading(false);
+
+    if (!res.ok) {
+      alert(
+        data.error ||
+          "Could not add link"
+      );
+      return;
+    }
+
+    onCreated(data.link);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              Add Link
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Save an important project URL.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form
+          onSubmit={submit}
+          className="mt-6 space-y-5"
+        >
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Title
+            </label>
+
+            <input
+              value={title}
+              onChange={(e) =>
+                setTitle(e.target.value)
+              }
+              placeholder="GitHub Repository"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              URL
+            </label>
+
+            <input
+              value={url}
+              onChange={(e) =>
+                setUrl(e.target.value)
+              }
+              placeholder="https://github.com/..."
+              type="url"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Description
+            </label>
+
+            <textarea
+              value={description}
+              onChange={(e) =>
+                setDescription(
+                  e.target.value
+                )
+              }
+              rows={4}
+              placeholder="What is this link for?"
+              className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <button
+            disabled={
+              loading ||
+              !title.trim() ||
+              !url.trim()
+            }
+            className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading
+              ? "Adding..."
+              : "Add Link"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+import mongoose from "mongoose";
+
+const ProjectFileSchema = new mongoose.Schema(
+    {
+        project: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Project",
+            required: true,
+            index: true,
+        },
+
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        originalName: {
+            type: String,
+            required: true,
+        },
+        mimeType: {
+            type: String,
+            default: "application/octet-stream",
+        },
+        extension: {
+            type: String,
+            default: "",
+        },
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        description: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+
+        url: {
+            type: String,
+            required: true,
+        },
+
+        publicId: {
+            type: String,
+            required: true,
+        },
+
+        resourceType: {
+            type: String,
+            default: "auto",
+        },
+
+        format: {
+            type: String,
+            default: "",
+        },
+
+        size: {
+            type: Number,
+            default: 0,
+        },
+
+        uploadedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+export default mongoose.models.ProjectFile ||
+    mongoose.model("ProjectFile", ProjectFileSchema);
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import connectDb from "@/db/connectDb";
+import ProjectFile from "@/models/ProjectFile";
+import Project from "@/models/Project";
+
+import { authOptions } from "@/lib/authOptions";
+import cloudinary from "@/lib/cloudinary";
+
+export async function DELETE(req, { params }) {
+  try {
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { fileId } = await params;
+
+    await connectDb();
+
+    const file =
+      await ProjectFile.findById(fileId);
+
+    if (!file) {
+      return NextResponse.json(
+        { error: "File not found" },
+        { status: 404 }
+      );
+    }
+
+    const project =
+      await Project.findById(file.project);
+
+    const member = project.members.find(
+      (m) =>
+        m.user.toString() === session.user.id
+    );
+
+    if (
+      !member ||
+      !["admin", "editor"].includes(member.role)
+    ) {
+      return NextResponse.json(
+        { error: "You cannot delete this file." },
+        { status: 403 }
+      );
+    }
+
+    await cloudinary.uploader.destroy(
+      file.publicId,
+      {
+        resource_type:
+          file.resourceType || "raw",
+      }
+    );
+
+    await ProjectFile.findByIdAndDelete(fileId);
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { error: "Could not delete file." },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/files/[fileId]/route.js
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
+
+import connectDb from "@/db/connectDb";
+import ProjectFile from "@/models/ProjectFile";
+import Project from "@/models/Project";
+
+import { authOptions } from "@/lib/authOptions";
+import cloudinary from "@/lib/cloudinary";
+
+export async function GET(req, { params }) {
+  try {
+    const session =
+      await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { fileId } = await params;
+
+    await connectDb();
+
+    const file =
+      await ProjectFile.findById(fileId);
+
+    if (!file) {
+      return NextResponse.json(
+        { error: "File not found" },
+        { status: 404 }
+      );
+    }
+
+    const project =
+      await Project.findById(file.project);
+
+    const member =
+      project.members.find(
+        (m) =>
+          m.user.toString() ===
+          session.user.id
+      );
+
+    if (!member) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
+    const signedUrl =
+      cloudinary.utils.private_download_url(
+        file.publicId,
+        file.extension || "",
+        {
+          resource_type:
+            file.resourceType || "raw",
+        }
+      );
+
+    return NextResponse.redirect(
+      signedUrl
+    );
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { error: "Could not download file." },
+      { status: 500 }
+    );
+  }
+}
+this is app/api/files/[fileId]/download/route.js
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud\_name:
+    process.env.CLOUD\_CLOUD\_NAME,
+
+  api\_key:
+    process.env.CLOUD\_API\_KEY,
+
+  api\_secret:
+    process.env.CLOUD\_API\_SECRET
+});
+
+export default cloudinary;
+tell me what to do exactly...
