@@ -64,55 +64,55 @@
 
 
 // }
-import { NextResponse } from "next/server";
-import connectDB from "@/db/connectDb";
-import NotificationToken from "@/models/NotificationToken";
+// import { NextResponse } from "next/server";
+// import connectDB from "@/db/connectDb";
+// import NotificationToken from "@/models/NotificationToken";
 
-export async function POST(req) {
-  try {
-    await connectDB();
+// export async function POST(req) {
+//   try {
+//     await connectDB();
 
-    const body = await req.json();
+//     const body = await req.json();
 
-    // console.log("BODY:");
-    // console.log(body);
+//     // console.log("BODY:");
+//     // console.log(body);
 
-    const { token, userId } = body;
+//     const { token, userId } = body;
 
-    // console.log("token =", token);
-    // console.log("userId =", userId);
-await NotificationToken.deleteMany({
-    user: userId,
-});
+//     // console.log("token =", token);
+//     // console.log("userId =", userId);
+// await NotificationToken.deleteMany({
+//     user: userId,
+// });
 
-await NotificationToken.findOneAndUpdate(
-    { token },
-    {
-        token,
-        user: userId,
-    },
-    {
-        upsert: true,
-        new: true,
-    }
-);
+// await NotificationToken.findOneAndUpdate(
+//     { token },
+//     {
+//         token,
+//         user: userId,
+//     },
+//     {
+//         upsert: true,
+//         new: true,
+//     }
+// );
 
-    return NextResponse.json({
-      success: true,
-    });
+//     return NextResponse.json({
+//       success: true,
+//     });
 
-  } catch (error) {
-    console.error("FULL ERROR:");
-    console.error(error);
+//   } catch (error) {
+//     console.error("FULL ERROR:");
+//     console.error(error);
 
-    return NextResponse.json(
-      {
-        error: error.message,
-        stack: error.stack,
-      },
-      {
-        status: 500,
-      }
-    );
-  }
-}
+//     return NextResponse.json(
+//       {
+//         error: error.message,
+//         stack: error.stack,
+//       },
+//       {
+//         status: 500,
+//       }
+//     );
+//   }
+// }

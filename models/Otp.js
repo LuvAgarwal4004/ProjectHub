@@ -1,48 +1,48 @@
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 
-const otpSchema = new mongoose.Schema({
+// const otpSchema = new mongoose.Schema({
 
-  email: {
-    type: String,
-    required: true
-  },
+//   email: {
+//     type: String,
+//     required: true
+//   },
 
-  otp: {
-    type: String,
-    required: true
-  },
+//   otp: {
+//     type: String,
+//     required: true
+//   },
 
-  password: {
-    type: String,
-    default: null
-  },
+//   password: {
+//     type: String,
+//     default: null
+//   },
 
-  name: {
-    type: String,
-    default: null
-  },
+//   name: {
+//     type: String,
+//     default: null
+//   },
 
-  type: {
-    type: String,
-    enum: [
-      "signup",
-      "forgot-password"
-    ],
-    required: true
-  },
+//   type: {
+//     type: String,
+//     enum: [
+//       "signup",
+//       "forgot-password"
+//     ],
+//     required: true
+//   },
 
-  attempts: {
-    type: Number,
-    default: 0
-  },
+//   attempts: {
+//     type: Number,
+//     default: 0
+//   },
 
-  expiresAt: {
-    type: Date,
-    required: true,
-    expires: 0
-  }
+//   expiresAt: {
+//     type: Date,
+//     required: true,
+//     expires: 0
+//   }
 
-}, { timestamps: true });
+// }, { timestamps: true });
 
-export default mongoose.models.Otp ||
-mongoose.model("Otp", otpSchema);
+// export default mongoose.models.Otp ||
+// mongoose.model("Otp", otpSchema);
