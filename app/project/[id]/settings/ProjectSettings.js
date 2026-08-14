@@ -12,9 +12,11 @@ import {
     Trash2,
     LogOut,
     Copy,
-    Mail,
     Link2,
     MessageCircle,
+    Pencil,
+    Save,
+    AlertTriangle,
 } from "lucide-react";
 
 export default function ProjectSettings({
@@ -24,6 +26,23 @@ export default function ProjectSettings({
 
     const [email, setEmail] =
         useState("");
+    const [projectName, setProjectName] =
+        useState(project.name || "");
+
+    const [projectDescription, setProjectDescription] =
+        useState(project.description || "");
+
+    const [savingProject, setSavingProject] =
+        useState(false);
+
+    const [deleteProjectName, setDeleteProjectName] =
+        useState("");
+
+    const [showDeleteModal, setShowDeleteModal] =
+        useState(false);
+
+    const [deletingProject, setDeletingProject] =
+        useState(false);
 
     const [role, setRole] =
         useState("viewer");
@@ -101,7 +120,102 @@ export default function ProjectSettings({
             "Invitation link copied!"
         );
     }
+    async function saveProjectDetails() {
+        const name = projectName.trim();
+        const description = projectDescription.trim();
 
+        if (!name) {
+            toast.error("Project name is required");
+            return;
+        }
+
+        setSavingProject(true);
+
+        try {
+            const res = await fetch(
+                `/api/projects/${project._id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name,
+                        description,
+                    }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(
+                    data.error ||
+                    "Failed to update project"
+                );
+            }
+
+            toast.success(
+                "Project updated successfully"
+            );
+
+            router.refresh();
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setSavingProject(false);
+        }
+    }
+    async function deleteProject() {
+        if (
+            deleteProjectName.trim() !==
+            project.name
+        ) {
+            toast.error(
+                "Project name does not match"
+            );
+            return;
+        }
+
+        setDeletingProject(true);
+
+        try {
+            const res = await fetch(
+                `/api/projects/${project._id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                    },
+                    body: JSON.stringify({
+                        projectName:
+                            deleteProjectName.trim(),
+                    }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(
+                    data.error ||
+                    "Failed to delete project"
+                );
+            }
+
+            toast.success(
+                "Project deleted successfully"
+            );
+
+            router.push("/dashboard");
+            router.refresh();
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setDeletingProject(false);
+        }
+    }
     function sendInvitationEmail() {
         if (!invitationLink) {
             toast.error(
@@ -330,7 +444,84 @@ export default function ProjectSettings({
                         Manage members, roles and project access.
                     </p>
                 </div>
+                <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
 
+                    <div className="flex items-start gap-4">
+
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                            <Pencil size={20} />
+                        </div>
+
+                        <div>
+                            <h2 className="font-bold text-slate-900">
+                                Project Information
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Update your project's name and description.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div className="mt-6 space-y-5">
+
+                        <div>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Project Name
+                            </label>
+
+                            <input
+                                value={projectName}
+                                onChange={(e) =>
+                                    setProjectName(e.target.value)
+                                }
+                                maxLength={100}
+                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                placeholder="Project name"
+                            />
+                        </div>
+
+
+                        <div>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Description
+                            </label>
+
+                            <textarea
+                                value={projectDescription}
+                                onChange={(e) =>
+                                    setProjectDescription(e.target.value)
+                                }
+                                maxLength={1000}
+                                rows={5}
+                                className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                placeholder="Project description"
+                            />
+                        </div>
+
+
+                        <div className="flex justify-end">
+
+                            <button
+                                type="button"
+                                onClick={saveProjectDetails}
+                                disabled={savingProject}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <Save size={16} />
+
+                                {savingProject
+                                    ? "Saving..."
+                                    : "Save Changes"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </section>
                 {/* INVITE */}
 
                 <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -502,68 +693,64 @@ export default function ProjectSettings({
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2">
-                                        {member.role ===
-                                            "admin" ? (
-                                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold capitalize text-blue-700">
-                                                Admin
-                                            </span>
-                                        ) : (
-                                            <>
-                                                <select
-                                                    value={
-                                                        member.role
-                                                    }
-                                                    onChange={(
-                                                        e
-                                                    ) =>
-                                                        changeRole(
-                                                            member.user
-                                                                ._id,
-                                                            e.target
-                                                                .value
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
-                                                >
-                                                    <option value="viewer">
-                                                        Viewer
-                                                    </option>
 
-                                                    <option value="editor">
-                                                        Editor
-                                                    </option>
-                                                </select>
+    {member.role === "admin" ? (
 
-                                                <button
-                                                    onClick={() =>
-                                                        transferAdmin(
-                                                            member.user
-                                                                ._id,
-                                                            member.user
-                                                                .name
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-                                                >
-                                                    Make Admin
-                                                </button>
+        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+            Admin
+        </span>
 
-                                                <button
-                                                    onClick={() =>
-                                                        removeMember(
-                                                            member.user
-                                                                ._id
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
-                                                >
-                                                    <Trash2
-                                                        size={15}
-                                                    />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
+    ) : (
+
+        <>
+            <select
+                value={member.role}
+                onChange={(e) =>
+                    changeRole(
+                        member.user._id,
+                        e.target.value
+                    )
+                }
+                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
+            >
+                <option value="viewer">
+                    Viewer
+                </option>
+
+                <option value="editor">
+                    Editor
+                </option>
+            </select>
+
+
+            <button
+                onClick={() =>
+                    makeAdmin(
+                        member.user._id,
+                        member.user.name
+                    )
+                }
+                className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+            >
+                Make Admin
+            </button>
+
+
+            <button
+                onClick={() =>
+                    removeMember(
+                        member.user._id
+                    )
+                }
+                className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
+            >
+                <Trash2 size={15} />
+            </button>
+        </>
+
+    )}
+
+</div>
                                 </div>
                             )
                         )}
@@ -593,7 +780,133 @@ export default function ProjectSettings({
                         </button>
                     </div>
                 </section>
+                <section className="mt-6 rounded-3xl border border-red-200 bg-red-50/40 p-5 shadow-sm sm:p-7">
+
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div className="flex items-start gap-4">
+
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                                <AlertTriangle size={20} />
+                            </div>
+
+                            <div>
+                                <h2 className="font-bold text-red-700">
+                                    Delete Project
+                                </h2>
+
+                                <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+                                    Permanently delete this project and
+                                    remove it from everyone's dashboard.
+                                    This action cannot be undone.
+                                </p>
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDeleteProjectName("");
+                                setShowDeleteModal(true);
+                            }}
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                        >
+                            <Trash2 size={16} />
+                            Delete Project
+                        </button>
+
+                    </div>
+
+                </section>
             </div>
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+
+                    <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
+
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                            <AlertTriangle size={24} />
+                        </div>
+
+
+                        <h2 className="mt-5 text-xl font-bold text-slate-900">
+                            Delete "{project.name}"?
+                        </h2>
+
+
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                            This will permanently delete the project
+                            and all of its membership information.
+                            This action cannot be undone.
+                        </p>
+
+
+                        <div className="mt-6">
+
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Type the project name to confirm
+                            </label>
+
+                            <input
+                                value={deleteProjectName}
+                                onChange={(e) =>
+                                    setDeleteProjectName(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder={project.name}
+                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                            />
+
+                            <p className="mt-2 text-xs text-slate-400">
+                                Type exactly:
+                                <span className="ml-1 font-semibold text-slate-600">
+                                    {project.name}
+                                </span>
+                            </p>
+
+                        </div>
+
+
+                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setShowDeleteModal(false)
+                                }
+                                disabled={deletingProject}
+                                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+
+
+                            <button
+                                type="button"
+                                onClick={deleteProject}
+                                disabled={
+                                    deletingProject ||
+                                    deleteProjectName.trim() !==
+                                    project.name
+                                }
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                <Trash2 size={16} />
+
+                                {deletingProject
+                                    ? "Deleting..."
+                                    : "Delete Permanently"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
         </main>
     );
 }

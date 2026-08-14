@@ -6,9 +6,14 @@ import Project from "@/models/Project";
 
 import { authOptions } from "@/lib/authOptions";
 
+
+/* =========================
+   UPDATE PROJECT
+========================= */
+
 export async function PATCH(req, { params }) {
   try {
-    const { id, userId } = await params;
+    const { id } = await params;
 
     const session = await getServerSession(authOptions);
 
@@ -30,69 +35,72 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    // Current user must be an admin
-    const currentUser = project.members.find(
-      (member) =>
-        String(member.user) === String(session.user.id)
+    // Only admins can edit project information
+    const member = project.members.find(
+      (m) =>
+        String(m.user) === String(session.user.id)
     );
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!member || member.role !== "admin") {
       return NextResponse.json(
         { error: "Admin only" },
         { status: 403 }
       );
     }
 
-    // Find target member
-    const targetMember = project.members.find(
-      (member) =>
-        String(member.user) === String(userId)
-    );
+    const body = await req.json();
 
-    if (!targetMember) {
-      return NextResponse.json(
-        { error: "Member not found" },
-        { status: 404 }
-      );
-    }
+    const name = String(body.name || "").trim();
+    const description = String(
+      body.description || ""
+    ).trim();
 
-    // Don't allow changing your own role through this route
-    if (String(userId) === String(session.user.id)) {
+    if (!name) {
       return NextResponse.json(
         {
-          error:
-            "You cannot change your own role here.",
+          error: "Project name is required",
         },
         { status: 400 }
       );
     }
 
-    const body = await req.json();
-
-    // NOW admin is allowed
-    if (
-      !["admin", "editor", "viewer"].includes(body.role)
-    ) {
+    if (name.length > 100) {
       return NextResponse.json(
-        { error: "Invalid role" },
+        {
+          error: "Project name is too long",
+        },
         { status: 400 }
       );
     }
 
-    targetMember.role = body.role;
+    if (description.length > 1000) {
+      return NextResponse.json(
+        {
+          error: "Project description is too long",
+        },
+        { status: 400 }
+      );
+    }
+
+    project.name = name;
+    project.description = description;
 
     await project.save();
 
     return NextResponse.json({
       success: true,
-      role: body.role,
+      project: {
+        id: project._id.toString(),
+        name: project.name,
+        description: project.description,
+      },
     });
   } catch (error) {
-    console.error("CHANGE ROLE ERROR:", error);
+    console.error("UPDATE PROJECT ERROR:", error);
 
     return NextResponse.json(
       {
-        error: "Failed to change role",
+        error: "Failed to update project",
       },
       { status: 500 }
     );
@@ -100,11 +108,13 @@ export async function PATCH(req, { params }) {
 }
 
 
-/* REMOVE MEMBER */
+/* =========================
+   DELETE PROJECT
+========================= */
 
 export async function DELETE(req, { params }) {
   try {
-    const { id, userId } = await params;
+    const { id } = await params;
 
     const session = await getServerSession(authOptions);
 
@@ -126,58 +136,47 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const currentUser = project.members.find(
-      (member) =>
-        String(member.user) === String(session.user.id)
+    // Only admins can delete
+    const member = project.members.find(
+      (m) =>
+        String(m.user) === String(session.user.id)
     );
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!member || member.role !== "admin") {
       return NextResponse.json(
         { error: "Admin only" },
         { status: 403 }
       );
     }
 
-    const targetMember = project.members.find(
-      (member) =>
-        String(member.user) === String(userId)
-    );
+    const body = await req.json();
 
-    if (!targetMember) {
-      return NextResponse.json(
-        { error: "Member not found" },
-        { status: 404 }
-      );
-    }
+    const confirmationName = String(
+      body.projectName || ""
+    ).trim();
 
-    // An admin cannot remove another admin.
-    // They must first change that admin to editor/viewer.
-    if (targetMember.role === "admin") {
+    // Exact project-name confirmation
+    if (confirmationName !== project.name) {
       return NextResponse.json(
         {
           error:
-            "Change the admin's role before removing them.",
+            "Project name does not match.",
         },
         { status: 400 }
       );
     }
 
-    project.members = project.members.filter(
-      (member) =>
-        String(member.user) !== String(userId)
-    );
-
-    await project.save();
+    await Project.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,
     });
   } catch (error) {
-    console.error("REMOVE MEMBER ERROR:", error);
+    console.error("DELETE PROJECT ERROR:", error);
 
     return NextResponse.json(
       {
-        error: "Failed to remove member",
+        error: "Failed to delete project",
       },
       { status: 500 }
     );
