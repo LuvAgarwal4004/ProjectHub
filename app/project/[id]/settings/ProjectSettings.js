@@ -367,7 +367,41 @@ export default function ProjectSettings({
         router.push("/dashboard");
         router.refresh();
     }
+    async function makeAdmin(userId, name) {
+        if (
+            !confirm(
+                `Make ${name} an admin?`
+            )
+        ) {
+            return;
+        }
 
+        const res = await fetch(
+            `/api/projects/${project._id}/members/${userId}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    role: "admin",
+                }),
+            }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            toast.error(
+                data.error || "Could not make admin"
+            );
+            return;
+        }
+
+        toast.success(`${name} is now an admin`);
+
+        router.refresh();
+    }
     async function transferAdmin(
         userId,
         name
@@ -694,63 +728,63 @@ export default function ProjectSettings({
 
                                     <div className="flex flex-wrap items-center gap-2">
 
-    {member.role === "admin" ? (
+                                        {member.role === "admin" ? (
 
-        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-            Admin
-        </span>
+                                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+                                                Admin
+                                            </span>
 
-    ) : (
+                                        ) : (
 
-        <>
-            <select
-                value={member.role}
-                onChange={(e) =>
-                    changeRole(
-                        member.user._id,
-                        e.target.value
-                    )
-                }
-                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
-            >
-                <option value="viewer">
-                    Viewer
-                </option>
+                                            <>
+                                                <select
+                                                    value={member.role}
+                                                    onChange={(e) =>
+                                                        changeRole(
+                                                            member.user._id,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
+                                                >
+                                                    <option value="viewer">
+                                                        Viewer
+                                                    </option>
 
-                <option value="editor">
-                    Editor
-                </option>
-            </select>
-
-
-            <button
-                onClick={() =>
-                    makeAdmin(
-                        member.user._id,
-                        member.user.name
-                    )
-                }
-                className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-            >
-                Make Admin
-            </button>
+                                                    <option value="editor">
+                                                        Editor
+                                                    </option>
+                                                </select>
 
 
-            <button
-                onClick={() =>
-                    removeMember(
-                        member.user._id
-                    )
-                }
-                className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
-            >
-                <Trash2 size={15} />
-            </button>
-        </>
+                                                <button
+                                                    onClick={() =>
+                                                        makeAdmin(
+                                                            member.user._id,
+                                                            member.user.name
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                                                >
+                                                    Make Admin
+                                                </button>
 
-    )}
 
-</div>
+                                                <button
+                                                    onClick={() =>
+                                                        removeMember(
+                                                            member.user._id
+                                                        )
+                                                    }
+                                                    className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            </>
+
+                                        )}
+
+                                    </div>
                                 </div>
                             )
                         )}
