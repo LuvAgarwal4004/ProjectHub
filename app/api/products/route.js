@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDb";
 import Product from "@/models/Product";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-
+import { authOptions } from "@/lib/authOptions";
 export const runtime = "nodejs";
 
 export async function POST(request) {

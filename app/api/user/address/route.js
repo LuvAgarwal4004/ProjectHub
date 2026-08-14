@@ -1,7 +1,7 @@
 import connectDb from "@/db/connectDb";
 import User from "@/models/User";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 
 export async function POST(req) {
   const body = await req.json();

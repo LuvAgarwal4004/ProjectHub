@@ -3,7 +3,7 @@ import connectDB from "@/db/connectDb";
 import RentRequest from "@/models/RentRequest";
 import NotificationToken from "@/models/NotificationToken";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 import { messaging } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
