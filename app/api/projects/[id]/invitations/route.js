@@ -9,7 +9,7 @@ import ProjectInvitation from "@/models/ProjectInvitation";
 import User from "@/models/User";
 
 import { authOptions } from "@/lib/authOptions";
-import { sendProjectInvitation } from "@/lib/mailer";
+// import { sendProjectInvitation } from "@/lib/mailer";
 
 export async function POST(req, { params }) {
   try {
@@ -148,15 +148,15 @@ export async function POST(req, { params }) {
           ),
       });
 
-    await sendProjectInvitation({
-      email,
-      projectName: project.name,
-      inviterName:
-        session.user.name ||
-        "A project admin",
-      role,
-      token,
-    });
+    // await sendProjectInvitation({
+    //   email,
+    //   projectName: project.name,
+    //   inviterName:
+    //     session.user.name ||
+    //     "A project admin",
+    //   role,
+    //   token,
+    // });
 
     return NextResponse.json({
       success: true,
