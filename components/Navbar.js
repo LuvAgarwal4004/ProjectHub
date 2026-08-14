@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import Image from "next/image";
-import SmartLink from "./SmartLink";
-import {
-  Menu,
-  X,
-  Home,
-  ShoppingBag,
-  ClipboardList,
-  PlusCircle,
-  User,
-  LogOut,
-} from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [open, setOpen] = useState(false);
-
   const dropdownRef = useRef(null);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -33,325 +21,95 @@ export default function Navbar() {
       }
     }
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    document.addEventListener("mousedown", handleClickOutside);
 
-    return () =>
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
-  return (
-    <>
-<nav className="sticky top-0 z-50 bg-[#07091d]/95 backdrop-blur-md border-b border-white/10 shadow-xl">        <div className="mx-auto max-w-7xl px-4">
-
-          <div className="flex h-24 items-center justify-between">
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenu(true)}
-              className="md:hidden text-white"
-            >
-              <Menu size={28} />
-            </button>
-
-            {/* Logo */}
-            {/* Logo */}
-<SmartLink href="/" className="flex items-center">
-  <div className="flex items-center rounded-xl bg-white px-2 py-1 shadow-md">
-    <img
-      src="/logo1.jpg"
-      alt="ProjectHub"
-      className="h-18 w-auto object-contain"
-    />
-  </div>
-</SmartLink>
-
-            {/* Desktop Links */}
-
-            <div className="hidden md:flex items-center gap-2">
-
-              <SmartLink href="/">
-                <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                  Home
-                </span>
-              </SmartLink>
-
-              {/* <SmartLink href="/buy">
-                <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                  Buy
-                </span>
-              </SmartLink>
-
-              <SmartLink href="/rent-requests">
-                <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                  Rent Requests
-                </span>
-              </SmartLink> */}
-
-              {session && (
-                <>
-                  {/* <SmartLink href="/sell">
-                    <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                      Sell
-                    </span>
-                  </SmartLink>
-
-                  <SmartLink href="/rent">
-                    <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                      Rent
-                    </span>
-                  </SmartLink> */}
-
-                  <SmartLink href="/my-activity">
-                    <span className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-cyan-500/10 hover:text-cyan-400">
-                      My Activity
-                    </span>
-                  </SmartLink>
-                </>
-              )}
-            </div>
-
-            {/* Right Side */}
-
-            <div className="flex items-center">
-
-              {!session ? (
-                <SmartLink href="/login">
-                  <button
-                    className="
-                    rounded-xl
-                    bg-gradient-to-r
-                    from-indigo-600
-                    to-purple-600
-                    px-5
-                    py-2
-                    text-white
-                    font-semibold
-                    hover:scale-105
-                    transition
-                  "
-                  >
-                    Login
-                  </button>
-                </SmartLink>
-              ) : (
-                <div
-                  ref={dropdownRef}
-                  className="relative"
-                >
-                  <button
-                    onClick={() =>
-                      setOpen(!open)
-                    }
-                  >
-                    <Image
-                      src={
-                        session.user.image ||
-                        `https://api.dicebear.com/7.x/initials/png?seed=${encodeURIComponent(
-                          session.user.name
-                        )}`
-                      }
-                      alt="profile"
-                      width={42}
-                      height={42}
-                      className="rounded-full border-2 border-white"
-                    />
-                  </button>
-
-                  {open && (
-                    <div
-                      className="
-                      absolute
-                      right-0
-                      mt-3
-                      w-56
-                      rounded-2xl
-                      bg-white
-                      shadow-2xl
-                      overflow-hidden
-                    "
-                    >
-
-                      <div className="border-b p-4">
-
-                        <p className="font-semibold">
-                          {session.user.name}
-                        </p>
-
-                        <p className="text-sm text-gray-500">
-                          {session.user.email}
-                        </p>
-
-                      </div>
-
-                      <SmartLink
-                        href="/my-activity"
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100"
-                      >
-                        <User size={18} />
-                        My Activity
-                      </SmartLink>
-
-                      <button
-                        onClick={() =>
-                          signOut({
-                            callbackUrl: "/",
-                          })
-                        }
-                        className="
-                        flex
-                        w-full
-                        items-center
-                        gap-3
-                        px-4
-                        py-3
-                        text-red-600
-                        hover:bg-red-50
-                        "
-                      >
-                        <LogOut size={18} />
-                        Logout
-                      </button>
-
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-          </div>
-
+  // Don't show anything while session is loading
+  if (status === "loading") {
+    return (
+      <nav className="sticky top-0 z-50 h-16 border-b border-white/10 bg-[#07091d]/95 backdrop-blur-md">
+        <div className="mx-auto flex h-full max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8">
+          <div className="h-10 w-10 animate-pulse rounded-full bg-white/10" />
         </div>
       </nav>
+    );
+  }
 
-      {/* Overlay */}
+  // If user isn't logged in, don't show anything
+  if (!session) {
+    return null;
+  }
 
-      <div
-        onClick={() =>
-          setMobileMenu(false)
-        }
-        className={`
-fixed
-inset-0
-bg-black/50
-z-40
-transition
-${mobileMenu
-            ? "opacity-100"
-            : "pointer-events-none opacity-0"}
-`}
-      />
+  const userImage =
+    session.user?.image ||
+    `https://api.dicebear.com/7.x/initials/png?seed=${encodeURIComponent(
+      session.user?.name || "User"
+    )}`;
 
-      {/* Mobile Sidebar */}
-
-      <div
-        className={`
-fixed
-top-0
-left-0
-z-50
-h-screen
-w-72
-bg-[#06081f]
-transition-transform
-duration-300
-${mobileMenu
-            ? "translate-x-0"
-            : "-translate-x-full"}
-`}
-      >
-
-        <div className="flex items-center justify-between p-5">
-
-          <h2 className="text-xl font-bold text-white">
-            Campus Hub
-          </h2>
-
+  return (
+    <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07091d]/95 shadow-xl backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8">
+        <div ref={dropdownRef} className="relative">
+          {/* Profile Button */}
           <button
-            onClick={() =>
-              setMobileMenu(false)
-            }
-            className="text-white"
+            type="button"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-label="Open profile menu"
+            aria-expanded={open}
+            className="group flex items-center justify-center rounded-full transition-transform duration-200 hover:scale-105 focus:outline-none"
           >
-            <X />
+            <img
+              src={userImage}
+              alt="Profile"
+              className="h-10 w-10 rounded-full border-2 border-white/20 object-cover shadow-lg transition-all duration-200 group-hover:border-cyan-400/60 group-hover:shadow-cyan-500/20 sm:h-11 sm:w-11"
+            />
           </button>
 
-        </div>
+          {/* Dropdown */}
+          {open && (
+            <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-white/10 bg-[#101329] shadow-2xl shadow-black/40 backdrop-blur-xl">
+              {/* User Information */}
+              <div className="border-b border-white/10 px-4 py-4">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={userImage}
+                    alt="Profile"
+                    className="h-10 w-10 rounded-full border border-white/20 object-cover"
+                  />
 
-        <div className="mt-5 flex flex-col">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-white">
+                      {session.user?.name || "User"}
+                    </p>
 
-          <SmartLink
-            href="/"
-            className="p-4 text-gray-300 hover:bg-white/10"
-          >
-            <Home className="inline mr-3" />
-            Home
-          </SmartLink>
+                    <p className="truncate text-sm text-gray-400">
+                      {session.user?.email || ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          {/* <SmartLink
-            href="/buy"
-            className="p-4 text-gray-300 hover:bg-white/10"
-          >
-            <ShoppingBag className="inline mr-3" />
-            Buy
-          </SmartLink>
-
-          <SmartLink
-            href="/rent-requests"
-            className="p-4 text-gray-300 hover:bg-white/10"
-          >
-            <ClipboardList className="inline mr-3" />
-            Rent Requests
-          </SmartLink> */}
-
-          {session && (
-            <>
-              {/* <SmartLink
-                href="/sell"
-                className="p-4 text-gray-300 hover:bg-white/10"
-              >
-                <PlusCircle className="inline mr-3" />
-                Sell
-              </SmartLink>
-
-              <SmartLink
-                href="/rent"
-                className="p-4 text-gray-300 hover:bg-white/10"
-              >
-                <PlusCircle className="inline mr-3" />
-                Rent
-              </SmartLink> */}
-
-              <SmartLink
-                href="/my-activity"
-                className="p-4 text-gray-300 hover:bg-white/10"
-              >
-                <User className="inline mr-3" />
-                My Activity
-              </SmartLink>
-
+              {/* Logout */}
               <button
+                type="button"
                 onClick={() =>
                   signOut({
                     callbackUrl: "/",
                   })
                 }
-                className="p-4 text-left text-red-400 hover:bg-red-500/10"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
               >
-                <LogOut className="inline mr-3" />
-                Logout
+                <LogOut size={18} />
+                <span className="font-medium">Logout</span>
               </button>
-            </>
+            </div>
           )}
-
         </div>
-
       </div>
-    </>
+    </nav>
   );
 }
