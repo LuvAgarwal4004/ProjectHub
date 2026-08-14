@@ -6,6 +6,8 @@ import { authOptions } from "@/lib/authOptions";
 import connectDb from "@/db/connectDb";
 import Project from "@/models/Project";
 
+import DashboardUserMenu from "@/components/DashboardUserMenu";
+
 export default async function DashboardPage() {
   // 🔒 SERVER-SIDE AUTHENTICATION CHECK
   const session = await getServerSession(authOptions);
@@ -26,60 +28,81 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
-      
+
+      {/* ================================================== */}
       {/* HEADER */}
+      {/* ================================================== */}
 
       <section className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
-          
-          <div>
-            <p className="text-sm font-medium text-blue-600">
-              ProjectHub
-            </p>
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
 
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
-              Welcome back, {session.user.name || "there"} 👋
-            </h1>
+          {/* TOP ROW */}
+          <div className="flex items-start justify-between gap-4">
 
-            <p className="mt-2 text-sm text-slate-500">
-              Manage your projects and everything connected to them.
-            </p>
+            {/* LEFT SIDE */}
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-blue-600">
+                ProjectHub
+              </p>
+
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Welcome back, {session.user.name || "there"} 👋
+              </h1>
+
+              <p className="mt-2 hidden text-sm text-slate-500 sm:block">
+                Manage your projects and everything connected to them.
+              </p>
+            </div>
+
+            {/* USER PROFILE */}
+            <div className="shrink-0">
+              <DashboardUserMenu user={session.user} />
+            </div>
+
           </div>
 
-          <Link
-            href="/dashboard/create"
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700"
-          >
-            + Create Project
-          </Link>
+          {/* MOBILE DESCRIPTION */}
+          <p className="mt-3 text-sm text-slate-500 sm:hidden">
+            Manage your projects and everything connected to them.
+          </p>
 
         </div>
       </section>
 
 
+      {/* ================================================== */}
       {/* DASHBOARD CONTENT */}
+      {/* ================================================== */}
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
 
-        <div className="mb-8 flex items-end justify-between">
+        {/* SECTION HEADER */}
+
+        <div className="mb-8 flex items-end justify-between gap-4">
+
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 sm:text-sm">
               Your workspace
             </p>
 
-            <h2 className="mt-2 text-2xl font-bold text-slate-900">
+            <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
               Your Projects
             </h2>
           </div>
 
-          <p className="text-sm text-slate-500">
+          <p className="shrink-0 text-sm text-slate-500">
             {projects.length}{" "}
-            {projects.length === 1 ? "project" : "projects"}
+            {projects.length === 1
+              ? "project"
+              : "projects"}
           </p>
+
         </div>
 
 
+        {/* ================================================== */}
         {/* PROJECTS */}
+        {/* ================================================== */}
 
         {projects.length === 0 ? (
           <EmptyProjects />
@@ -104,9 +127,9 @@ export default async function DashboardPage() {
 }
 
 
-/* ------------------------------------------------ */
+/* ================================================== */
 /* PROJECT CARD */
-/* ------------------------------------------------ */
+/* ================================================== */
 
 function ProjectCard({ project, userId }) {
   const currentMember = project.members.find(
@@ -233,13 +256,13 @@ function ProjectCard({ project, userId }) {
 }
 
 
-/* ------------------------------------------------ */
+/* ================================================== */
 /* EMPTY STATE */
-/* ------------------------------------------------ */
+/* ================================================== */
 
 function EmptyProjects() {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-20 text-center">
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center sm:py-20">
 
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-50 text-4xl">
         📁
@@ -266,9 +289,9 @@ function EmptyProjects() {
 }
 
 
-/* ------------------------------------------------ */
+/* ================================================== */
 /* DATE */
-/* ------------------------------------------------ */
+/* ================================================== */
 
 function formatDate(date) {
   if (!date) return "Unknown";
