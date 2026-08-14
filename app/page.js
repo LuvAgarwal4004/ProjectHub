@@ -246,7 +246,7 @@ export default function Home() {
                       PROJECT
                     </p>
                     <h3 className="mt-1 text-xl font-bold text-slate-900">
-                      HITK Stationary
+                      MeApp
                     </h3>
                   </div>
 

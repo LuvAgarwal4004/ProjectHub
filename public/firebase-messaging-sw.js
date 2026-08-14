@@ -1,68 +1,68 @@
 
-console.log("SERVICE WORKER LOADED");
-importScripts(
-    "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"
-);
+// console.log("SERVICE WORKER LOADED");
+// importScripts(
+//     "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"
+// );
 
-importScripts(
-    "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"
-);
-
-
-firebase.initializeApp({
-
-    apiKey: "AIzaSyB8vbfoty_yIU_fSFKITiL8Jy_PhcWuncI",
-    authDomain: "hitk-stationary-3d50f.firebaseapp.com",
-    projectId: "hitk-stationary-3d50f",
-    storageBucket: "hitk-stationary-3d50f.firebasestorage.app",
-    messagingSenderId: "826070424222",
-    appId: "1:826070424222:web:47b549425070fbbe27f98f"
-
-});
-self.skipWaiting();
-self.addEventListener("activate", (event) => {
-        event.waitUntil(clients.claim());
-    });
-const messaging = firebase.messaging();
+// importScripts(
+//     "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"
+// );
 
 
-messaging.onBackgroundMessage((payload) => {
-// console.log("BACKGROUND MESSAGE");
-// console.log(payload);
-    // console.log(
-        // "Background message received ",
-        // payload
-    // );
+// firebase.initializeApp({
+
+//     apiKey: "AIzaSyB8vbfoty_yIU_fSFKITiL8Jy_PhcWuncI",
+//     authDomain: "hitk-stationary-3d50f.firebaseapp.com",
+//     projectId: "hitk-stationary-3d50f",
+//     storageBucket: "hitk-stationary-3d50f.firebasestorage.app",
+//     messagingSenderId: "826070424222",
+//     appId: "1:826070424222:web:47b549425070fbbe27f98f"
+
+// });
+// self.skipWaiting();
+// self.addEventListener("activate", (event) => {
+//         event.waitUntil(clients.claim());
+//     });
+// const messaging = firebase.messaging();
 
 
-    self.registration.showNotification(
-        payload.notification.title,
-        {
-            body: payload.notification.body,
-            icon: "/logo1.jpg",
-
-            data: {
-                url: payload.data.url
-            }
-
-        }
-    );
-});
+// messaging.onBackgroundMessage((payload) => {
+// // console.log("BACKGROUND MESSAGE");
+// // console.log(payload);
+//     // console.log(
+//         // "Background message received ",
+//         // payload
+//     // );
 
 
-self.addEventListener(
-    "notificationclick",
-    (event) => {
+//     self.registration.showNotification(
+//         payload.notification.title,
+//         {
+//             body: payload.notification.body,
+//             icon: "/logo1.jpg",
 
-        event.notification.close();
+//             data: {
+//                 url: payload.data.url
+//             }
+
+//         }
+//     );
+// });
 
 
-        event.waitUntil(
+// self.addEventListener(
+//     "notificationclick",
+//     (event) => {
 
-            clients.openWindow(
-                event.notification.data.url
-            )
+//         event.notification.close();
 
-        );
 
-    });
+//         event.waitUntil(
+
+//             clients.openWindow(
+//                 event.notification.data.url
+//             )
+
+//         );
+
+//     });
