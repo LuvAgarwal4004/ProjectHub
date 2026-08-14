@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
               {/* <CheckoutProvider> */}
 
 
-              {/* <Navbar /> */}
+              <Navbar />
               <div className="min-h-screen">
 
                 {children}
