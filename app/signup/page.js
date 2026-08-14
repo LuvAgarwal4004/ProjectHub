@@ -1,405 +1,424 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import React from 'react';
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Mail,
+  User,
+  Lock,
+} from "lucide-react";
 
-const page = () => {
+export default function SignupPage() {
   const router = useRouter();
 
-  const [name, setName] =
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] =
     useState("");
 
-  const [email, setEmail] =
-    useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
-  const [password, setPassword] =
-    useState("");
-
-  const [confirmPassword,
-    setConfirmPassword] =
-    useState("");
-  const [otp, setOtp] =
-    useState("");
-
-  const [otpSent, setOtpSent] =
-    useState(false);
-  const [timer, setTimer] =
-    useState(30);
+  const [timer, setTimer] = useState(30);
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
-
     e.preventDefault();
 
-    if (
-      password !== confirmPassword
-    ) {
-
-      toast.error(
-        "Passwords do not match"
-      );
-
+    if (!name.trim() || !email.trim() || !password) {
+      toast.error("Please fill in all fields");
       return;
-
     }
 
-    const res = await fetch(
-      "/api/auth/send-otp",
-      {
-        method: "POST",
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+    setLoading(true);
 
-        body: JSON.stringify({
-          name,
-          email,
-          password
-        })
-      }
-    );
+    const res = await fetch("/api/auth/send-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+      }),
+    });
+
+    const data = await res.json();
+
+    setLoading(false);
+
+    if (data.success) {
+      setOtpSent(true);
+      setTimer(30);
+      toast.success("OTP sent to your email");
+    } else {
+      toast.error(data.error);
+    }
+  };
+
+  useEffect(() => {
+    if (!otpSent || timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [otpSent, timer]);
+
+  const handleResendOtp = async () => {
+    const res = await fetch("/api/auth/send-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+      }),
+    });
 
     const data = await res.json();
 
     if (data.success) {
-
-      setOtpSent(true);
-      toast.success(
-        "OTP sent to email"
-      );
-
+      setTimer(30);
+      toast.success("OTP resent");
     } else {
-
       toast.error(data.error);
-
     }
-
   };
-  useEffect(() => {
 
-    let interval;
-
-    if (otpSent && timer > 0) {
-
-      interval = setInterval(() => {
-
-        setTimer((prev) => prev - 1);
-
-      }, 1000);
-
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      toast.error("Enter the OTP");
+      return;
     }
 
-    return () => clearInterval(interval);
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        otp,
+      }),
+    });
 
-  }, [otpSent, timer]);
-  const handleResendOtp =
-    async () => {
+    const data = await res.json();
 
-      const res = await fetch(
-        "/api/auth/send-otp",
-        {
-          method: "POST",
+    if (data.success) {
+      await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+      toast.success("Account created!");
 
-          body: JSON.stringify({
-            name,
-            email,
-            password
-          })
-        }
-      );
+      router.push("/dashboard");
+      router.refresh();
+    } else {
+      toast.error(data.error);
+    }
+  };
 
-      const data =
-        await res.json();
+  const handleGoogle = async () => {
+    await signIn("google", {
+      callbackUrl: "/dashboard",
+    });
+  };
 
-      if (data.success) {
-
-        setTimer(30);
-
-        toast.success("OTP resent");
-
-      } else {
-
-        toast.error(data.error);
-
-      }
-
-    };
-  const handleVerifyOtp =
-    async () => {
-
-      const res = await fetch(
-        "/api/auth/verify-otp",
-        {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-            email,
-            otp
-          })
-
-        }
-      );
-
-      const data =
-        await res.json();
-
-      if (data.success) {
-
-        await signIn(
-          "credentials",
-          {
-            email,
-            password,
-            redirect: false
-          }
-        );
-
-        router.push("/");
-
-      } else {
-
-        toast.error(data.error);
-
-      }
-
-    };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-950 flex items-center justify-center px-4 py-10">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-10 text-slate-800">
 
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <div className="mx-auto flex min-h-[90vh] max-w-6xl items-center justify-center">
 
-        {/* HEADER */}
+        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
 
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 py-10 px-8 text-center">
+          {/* LEFT */}
 
-          <div className="h-20 w-20 rounded-full bg-white/20 mx-auto flex items-center justify-center text-4xl mb-5">
-            ✨
+          <div className="hidden bg-slate-900 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+
+            <Link
+              href="/"
+              className="text-2xl font-bold"
+            >
+              Project
+              <span className="text-blue-400">
+                Hub
+              </span>
+            </Link>
+
+            <div>
+
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-2xl">
+                ✦
+              </div>
+
+              <h1 className="text-4xl font-bold leading-tight">
+                Build your
+                <br />
+                project workspace.
+              </h1>
+
+              <p className="mt-6 max-w-md leading-7 text-slate-300">
+                Create projects, organize resources and bring your
+                team together in one simple workspace.
+              </p>
+
+            </div>
+
+            <p className="text-sm text-slate-500">
+              Organize. Share. Collaborate.
+            </p>
+
           </div>
 
-          <h1 className="text-3xl font-bold text-white">
-            Create Account
-          </h1>
 
-          <p className="text-blue-100 mt-2">
-            Join us and start shopping today
-          </p>
+          {/* RIGHT */}
 
-        </div>
+          <div className="p-6 sm:p-10 lg:p-14">
 
-        {/* BODY */}
+            <div className="mx-auto max-w-md">
 
-        <div className="p-6 sm:p-8">
+              <Link
+                href="/"
+                className="mb-10 inline-block text-xl font-bold text-slate-900 lg:hidden"
+              >
+                Project
+                <span className="text-blue-600">
+                  Hub
+                </span>
+              </Link>
 
-          <form
-            onSubmit={handleSignup}
-            className="space-y-5"
-          >
 
-            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+                Get started
+              </p>
 
-              <label className="block mb-2 text-sm font-semibold text-gray-700">
-                Username
-              </label>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                Create your account
+              </h2>
 
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                type="text"
-                placeholder="John Doe"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:ring-4 focus:ring-blue-100 focus:border-blue-600"
-              />
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                Start organizing your projects and collaborating with
+                your team.
+              </p>
 
-            </div>
 
-            <div>
+              <form
+                onSubmit={handleSignup}
+                className="mt-8 space-y-5"
+              >
 
-              <label className="block mb-2 text-sm font-semibold text-gray-700">
-                Email
-              </label>
+                <Input
+                  icon={<User size={18} />}
+                  label="Name"
+                  value={name}
+                  onChange={setName}
+                  placeholder="Your name"
+                  type="text"
+                />
 
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:ring-4 focus:ring-blue-100 focus:border-blue-600"
-              />
+                <Input
+                  icon={<Mail size={18} />}
+                  label="Email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="you@example.com"
+                  type="email"
+                />
 
-            </div>
+                <Input
+                  icon={<Lock size={18} />}
+                  label="Password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="Create a password"
+                  type="password"
+                />
 
-            <div>
+                <Input
+                  icon={<Lock size={18} />}
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  placeholder="Repeat your password"
+                  type="password"
+                />
 
-              <label className="block mb-2 text-sm font-semibold text-gray-700">
-                Password
-              </label>
 
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Create a strong password"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:ring-4 focus:ring-blue-100 focus:border-blue-600"
-              />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-blue-100 transition hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {loading
+                    ? "Sending OTP..."
+                    : "Create Account"}
 
-            </div>
+                  {!loading && (
+                    <ArrowRight size={18} />
+                  )}
+                </button>
 
-            <div>
+              </form>
 
-              <label className="block mb-2 text-sm font-semibold text-gray-700">
-                Confirm Password
-              </label>
 
-              <input
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                type="password"
-                placeholder="Repeat password"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:ring-4 focus:ring-blue-100 focus:border-blue-600"
-              />
+              {otpSent && (
+                <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50 p-5">
 
-            </div>
+                  <div className="flex items-center gap-3">
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 py-3.5 font-semibold text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              Sign Up
-            </button>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                      <CheckCircle2 size={20} />
+                    </div>
 
-          </form>
+                    <div>
+                      <h3 className="font-bold text-slate-900">
+                        Verify your email
+                      </h3>
 
-          {otpSent && (
+                      <p className="text-xs text-slate-500">
+                        OTP sent to {email}
+                      </p>
+                    </div>
 
-            <div className="mt-8 border-t pt-8">
+                  </div>
 
-              <div className="flex justify-center">
 
-                <div className="h-16 w-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center text-white text-3xl shadow-lg">
-                  📧
+                  <input
+                    value={otp}
+                    onChange={(e) =>
+                      setOtp(e.target.value)
+                    }
+                    maxLength={6}
+                    placeholder="Enter 6-digit OTP"
+                    className="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  />
+
+
+                  <button
+                    onClick={handleVerifyOtp}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Verify Email
+                    <ArrowRight size={17} />
+                  </button>
+
+
+                  <button
+                    disabled={timer > 0}
+                    onClick={handleResendOtp}
+                    className="mt-4 w-full text-sm font-semibold text-blue-600 disabled:text-slate-400"
+                  >
+                    {timer > 0
+                      ? `Resend OTP in ${timer}s`
+                      : "Resend OTP"}
+                  </button>
+
                 </div>
+              )}
+
+
+              <div className="my-7 flex items-center gap-4">
+
+                <div className="h-px flex-1 bg-slate-200" />
+
+                <span className="text-xs text-slate-400">
+                  OR
+                </span>
+
+                <div className="h-px flex-1 bg-slate-200" />
 
               </div>
 
-              <h2 className="text-center text-2xl font-bold mt-5">
-                Verify Email
-              </h2>
-
-              <p className="text-center text-gray-500 mt-2">
-                Enter the OTP sent to
-              </p>
-
-              <p className="text-center text-blue-600 font-semibold break-all mt-1">
-                {email}
-              </p>
-
-              <input
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter OTP"
-                maxLength={6}
-                className="w-full mt-6 rounded-xl border border-gray-300 px-4 py-3 text-center text-xl tracking-[0.4em] outline-none transition focus:ring-4 focus:ring-green-100 focus:border-green-500"
-              />
 
               <button
-                onClick={handleVerifyOtp}
-                className="w-full mt-5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 py-3.5 font-semibold text-white shadow-lg hover:scale-[1.02] transition"
+                onClick={handleGoogle}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3.5 font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow-md"
               >
-                Verify OTP
+                <span className="text-lg">
+                  G
+                </span>
+
+                Continue with Google
               </button>
 
-              <button
-                type="button"
-                disabled={timer > 0}
-                onClick={handleResendOtp}
-                className="w-full mt-4 text-blue-600 font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
-              >
-                {timer > 0
-                  ? `Resend OTP in ${timer}s`
-                  : "Resend OTP"}
-              </button>
+
+              <p className="mt-8 text-center text-sm text-slate-500">
+
+                Already have an account?{" "}
+
+                <Link
+                  href="/login"
+                  className="font-semibold text-blue-600 hover:underline"
+                >
+                  Login
+                </Link>
+
+              </p>
 
             </div>
 
-          )}
-
-          {/* OR Divider */}
-
-          <div className="my-8 flex items-center">
-            <div className="h-px flex-1 bg-gray-300"></div>
-            <span className="px-4 text-sm text-gray-500">OR</span>
-            <div className="h-px flex-1 bg-gray-300"></div>
-          </div>
-
-          {/* Google Sign Up */}
-
-          <button
-            onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="
-flex
-w-full
-items-center
-justify-center
-gap-3
-rounded-xl
-border
-border-gray-300
-bg-white
-py-3
-font-medium
-shadow-sm
-transition-all
-hover:bg-blue-50
-hover:border-blue-300
-hover:shadow-lg
-"
-          >
-            <svg
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="-0.5 0 48 48"
-            >
-              <g fill="none" fillRule="evenodd">
-                <path fill="#FBBC05" d="M9.827 24c0-1.524.253-2.986.705-4.356L2.623 13.604A23.91 23.91 0 0 0 .214 24c0 3.737.867 7.261 2.406 10.389l7.905-6.051A14.02 14.02 0 0 1 9.827 24z" />
-                <path fill="#EB4335" d="M23.714 10.133c3.31 0 6.302 1.174 8.652 3.094L39.202 6.4C35.036 2.773 29.695.533 23.714.533c-9.287 0-17.269 5.311-21.091 13.071l7.909 6.04c1.822-5.532 7.017-9.511 13.182-9.511z" />
-                <path fill="#34A853" d="M23.714 37.867c-6.165 0-11.36-3.979-13.182-9.511l-7.909 6.038c3.822 7.761 11.804 13.072 21.091 13.072 5.732 0 11.204-2.035 15.311-5.848l-7.507-5.804c-2.118 1.334-4.786 2.053-7.804 2.053z" />
-                <path fill="#4285F4" d="M46.145 24c0-1.387-.213-2.88-.534-4.267H23.714V28.8h12.604c-.63 3.091-2.346 5.468-4.8 7.014l7.507 5.804C43.339 37.614 46.145 31.649 46.145 24z" />
-              </g>
-            </svg>
-
-            <span>Continue with Google</span>
-          </button>
-
-          <div className="mt-8 text-center text-gray-600">
-            Already have an account?{" "}
-            <a
-              href="/login"
-              className="font-semibold text-blue-600 hover:underline"
-            >
-              Login
-            </a>
           </div>
 
         </div>
 
       </div>
 
-    </div>
+    </main>
   );
 }
 
-export default page
+
+function Input({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type,
+}) {
+  return (
+    <div>
+
+      <label className="mb-2 block text-sm font-semibold text-slate-700">
+        {label}
+      </label>
+
+      <div className="relative">
+
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+          {icon}
+        </div>
+
+        <input
+          value={value}
+          onChange={(e) =>
+            onChange(e.target.value)
+          }
+          type={type}
+          placeholder={placeholder}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+        />
+
+      </div>
+
+    </div>
+  );
+}

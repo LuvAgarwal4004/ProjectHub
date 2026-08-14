@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "HITK Stationary",
+  title: "ProjectHub",
   description: "Get your style up!",
 };
 
@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
               {/* <CheckoutProvider> */}
 
 
-              <Navbar />
+              {/* <Navbar /> */}
               <div className="min-h-screen">
 
                 {children}

@@ -1,227 +1,269 @@
-"use client"
-import React from 'react'
-import Link from 'next/link'
+"use client";
+
+import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter }
-  from "next/navigation";
-import toast from 'react-hot-toast';
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { ArrowRight, Lock, Mail } from "lucide-react";
 
-const page = () => {
+export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [password, setPassword] =
-    useState("");
   const handleLogin = async (e) => {
-
     e.preventDefault();
 
-    const res = await signIn(
-      "credentials",
-      {
-        email,
-        password,
-        redirect: false
-      }
-    );
-
-    if (res.error) {
-
-      toast.error(res.error);
-
-    } else {
-
-      router.push("/");
-
+    if (!email || !password) {
+      toast.error("Please enter your email and password");
+      return;
     }
 
+    setLoading(true);
+
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+
+    toast.success("Welcome back!");
+
+    router.push("/dashboard");
+    router.refresh();
   };
+
+  const handleGoogle = async () => {
+    await signIn("google", {
+      callbackUrl: "/dashboard",
+    });
+  };
+
   return (
-    <div
-      className="
-  relative
-  overflow-hidden
-  min-h-screen
-  flex
-  items-center
-  justify-center
-  bg-gradient-to-br
-  from-slate-900
-  via-blue-900
-  to-indigo-950
-  px-4
-  py-10
-"
-    >
-      <div
-        className="
-w-full
-max-w-md
-rounded-3xl
-bg-white
-shadow-[0_20px_60px_rgba(0,0,0,0.25)]
-border
-border-white/20
-p-6
-sm:p-8
-"
-      >
-        <div className="flex justify-center mb-5">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-10 text-slate-800">
 
-          <div
-            className="
-h-16
-w-16
-rounded-full
-bg-gradient-to-r
-from-blue-500
-to-indigo-600
-flex
-items-center
-justify-center
-text-white
-text-3xl
-shadow-lg
-"
-          >
-            🔐
+      <div className="mx-auto flex min-h-[90vh] max-w-6xl items-center justify-center">
+
+        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
+
+          {/* LEFT */}
+
+          <div className="hidden bg-slate-900 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+
+            <Link
+              href="/"
+              className="text-2xl font-bold"
+            >
+              Project
+              <span className="text-blue-400">
+                Hub
+              </span>
+            </Link>
+
+            <div>
+
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-2xl">
+                ✦
+              </div>
+
+              <h1 className="text-4xl font-bold leading-tight">
+                Your projects,
+                <br />
+                all in one place.
+              </h1>
+
+              <p className="mt-6 max-w-md leading-7 text-slate-300">
+                Access your projects, files, links and team resources
+                from one organized workspace.
+              </p>
+
+            </div>
+
+            <p className="text-sm text-slate-500">
+              Organize. Share. Collaborate.
+            </p>
+
+          </div>
+
+
+          {/* RIGHT */}
+
+          <div className="p-6 sm:p-10 lg:p-14">
+
+            <div className="mx-auto max-w-md">
+
+              <Link
+                href="/"
+                className="mb-10 inline-block text-xl font-bold text-slate-900 lg:hidden"
+              >
+                Project
+                <span className="text-blue-600">
+                  Hub
+                </span>
+              </Link>
+
+              <div>
+
+                <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+                  Welcome back
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                  Login to ProjectHub
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-slate-500">
+                  Continue to your projects and shared workspaces.
+                </p>
+
+              </div>
+
+
+              <form
+                onSubmit={handleLogin}
+                className="mt-8 space-y-5"
+              >
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Email
+                  </label>
+
+                  <div className="relative">
+
+                    <Mail
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={email}
+                      onChange={(e) =>
+                        setEmail(e.target.value)
+                      }
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+
+                  </div>
+
+                </div>
+
+
+                <div>
+
+                  <div className="mb-2 flex items-center justify-between">
+
+                    <label className="text-sm font-semibold text-slate-700">
+                      Password
+                    </label>
+
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-semibold text-blue-600 hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+
+                  </div>
+
+                  <div className="relative">
+
+                    <Lock
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={password}
+                      onChange={(e) =>
+                        setPassword(e.target.value)
+                      }
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+
+                  </div>
+
+                </div>
+
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-blue-100 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading
+                    ? "Logging in..."
+                    : "Login"}
+
+                  {!loading && (
+                    <ArrowRight size={18} />
+                  )}
+                </button>
+
+              </form>
+
+
+              <div className="my-7 flex items-center gap-4">
+
+                <div className="h-px flex-1 bg-slate-200" />
+
+                <span className="text-xs font-medium text-slate-400">
+                  OR
+                </span>
+
+                <div className="h-px flex-1 bg-slate-200" />
+
+              </div>
+
+
+              <button
+                onClick={handleGoogle}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3.5 font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow-md"
+              >
+                <span className="text-lg">
+                  G
+                </span>
+
+                Continue with Google
+              </button>
+
+
+              <p className="mt-8 text-center text-sm text-slate-500">
+
+                Don't have an account?{" "}
+
+                <Link
+                  href="/signup"
+                  className="font-semibold text-blue-600 hover:underline"
+                >
+                  Sign up
+                </Link>
+
+              </p>
+
+            </div>
+
           </div>
 
         </div>
-        <div className="text-center mb-8">
-
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome Back
-          </h1>
-
-          <p className="text-gray-500 mt-2">
-            Login to continue shopping
-          </p>
-
-        </div>
-
-        <form className="space-y-6" onSubmit={handleLogin}>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">Email</label>
-            <input
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              type="email"
-              placeholder="you@example.com"
-              className="
-w-full
-rounded-xl
-border
-border-gray-300
-px-4
-py-3
-transition
-focus:border-blue-500
-focus:ring-4
-focus:ring-blue-100
-outline-none
-"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">Password</label>
-            <input
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              type="password"
-              placeholder="••••••••"
-              className="
-w-full
-rounded-xl
-border
-border-gray-300
-px-4
-py-3
-transition
-focus:border-blue-500
-focus:ring-4
-focus:ring-blue-100
-outline-none
-"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="
-w-full
-rounded-xl
-bg-gradient-to-r
-from-blue-600
-to-indigo-700
-py-3
-font-semibold
-text-white
-shadow-lg
-hover:scale-[1.02]
-hover:shadow-blue-400/40
-transition-all
-duration-300
-"
-          >
-            Login
-          </button>
-
-        </form>
-        <div className="mt-4">
-          <button onClick={() => { signIn("google", { callbackUrl: "/" }) }}
-            className="
-flex
-w-full
-items-center
-justify-center
-gap-3
-rounded-xl
-border
-border-gray-300
-bg-white
-py-3
-font-medium
-shadow-sm
-transition-all
-hover:bg-blue-50
-hover:border-blue-300
-hover:shadow-lg
-">
-            <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="-0.5 0 48 48" version="1.1">
-
-              <title>Google-color</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Color-" transform="translate(-401.000000, -860.000000)"> <g id="Google" transform="translate(401.000000, 860.000000)"> <path d="M9.82727273,24 C9.82727273,22.4757333 10.0804318,21.0144 10.5322727,19.6437333 L2.62345455,13.6042667 C1.08206818,16.7338667 0.213636364,20.2602667 0.213636364,24 C0.213636364,27.7365333 1.081,31.2608 2.62025,34.3882667 L10.5247955,28.3370667 C10.0772273,26.9728 9.82727273,25.5168 9.82727273,24" id="Fill-1" fill="#FBBC05"> </path> <path d="M23.7136364,10.1333333 C27.025,10.1333333 30.0159091,11.3066667 32.3659091,13.2266667 L39.2022727,6.4 C35.0363636,2.77333333 29.6954545,0.533333333 23.7136364,0.533333333 C14.4268636,0.533333333 6.44540909,5.84426667 2.62345455,13.6042667 L10.5322727,19.6437333 C12.3545909,14.112 17.5491591,10.1333333 23.7136364,10.1333333" id="Fill-2" fill="#EB4335"> </path> <path d="M23.7136364,37.8666667 C17.5491591,37.8666667 12.3545909,33.888 10.5322727,28.3562667 L2.62345455,34.3946667 C6.44540909,42.1557333 14.4268636,47.4666667 23.7136364,47.4666667 C29.4455,47.4666667 34.9177955,45.4314667 39.0249545,41.6181333 L31.5177727,35.8144 C29.3995682,37.1488 26.7323182,37.8666667 23.7136364,37.8666667" id="Fill-3" fill="#34A853"> </path> <path d="M46.1454545,24 C46.1454545,22.6133333 45.9318182,21.12 45.6113636,19.7333333 L23.7136364,19.7333333 L23.7136364,28.8 L36.3181818,28.8 C35.6879545,31.8912 33.9724545,34.2677333 31.5177727,35.8144 L39.0249545,41.6181333 C43.3393409,37.6138667 46.1454545,31.6490667 46.1454545,24" id="Fill-4" fill="#4285F4"> </path> </g> </g> </g> </svg>
-            <span>Continue with Google</span>
-          </button>
-        </div>
-        <Link href="/forgot-password">
-          <p className="mt-5 text-center text-sm text-blue-600 hover:underline">
-            Forgot Password?
-          </p>
-        </Link>
-
-        <p className="mt-8 text-center text-gray-600">
-          Don’t have an account?{" "}
-          <Link href={"/signup"}>
-            <span className="font-semibold text-blue-600 hover:underline">
-              Sign up
-            </span>
-          </Link>
-        </p>
-
 
       </div>
-    </div>
-  )
-}
 
-export default page
+    </main>
+  );
+}

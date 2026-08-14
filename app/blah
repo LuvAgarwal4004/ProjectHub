@@ -1,0 +1,8 @@
+why are we using nodemailer?!...i thought we agreed that we will generate invitation links 
+tell me how to generate links so that i can send them to watsaap or anywhere
+immediately now tell me what to do exactly, send me copy pastable files
+ALSO, what i want is that when someone uploads a file, then the admin can delete, download or send a file as a link...
+but the editor cannot send the file as a link
+now here is the twist...admin can send the file link to someone as assign that soomeone as a editor or a viewer...meaning that if the admin selcts "send as editor" while sending the file link then the someone can make changes in the file and that someone when changes anything in that file, then it updates in the real file in the website
+and when admin sends as a viewer then that someone can just see the file but not make changes to it...
+i hope you understand what i mean to say...dont waste our time by talking and explaining, just tell me what to do exactly and send me copypastable codes
