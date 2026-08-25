@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import FileTree from "./FileTree";
+import FileEditorModal from "./FileEditorModal";
+import MarkErrorModal from "./MarkErrorModal";
 
 import {
   ArrowLeft,
@@ -55,11 +58,17 @@ export default function ProjectWorkspace({
 
   const [linkModal, setLinkModal] =
     useState(false);
+  const [editorFile, setEditorFile] =
+    useState(null);
 
+  const [errorFile, setErrorFile] =
+    useState(null);
   const isAdmin =
     currentMember.role === "admin";
-
+  const isClosed =
+    project.status === "closed";
   const canEditResources =
+    !isClosed &&
     ["admin", "editor"].includes(
       currentMember.role
     );
@@ -110,13 +119,30 @@ export default function ProjectWorkspace({
     setTasks((prev) =>
       prev.map((task) =>
         String(task._id) ===
-        String(taskId)
+          String(taskId)
           ? data.task
           : task
       )
     );
   }
 
+  function openFile(file) {
+    if (
+      file.editable &&
+      ["admin", "editor"].includes(
+        currentMember.role
+      )
+    ) {
+      setEditorFile(file);
+      return;
+    }
+
+    window.open(
+      file.url,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
   async function deleteTask(taskId) {
     if (
       !confirm(
@@ -272,6 +298,64 @@ export default function ProjectWorkspace({
               {currentMember.role}
             </div>
           )}
+          {isAdmin && (
+            <button
+              onClick={async () => {
+                const confirmed =
+                  window.confirm(
+                    "Are you sure you want to FIX & CLOSE this project?\n\nAfter closing, editors will no longer be able to upload, edit, delete or add anything."
+                  );
+
+                if (!confirmed) {
+                  return;
+                }
+
+                try {
+                  const res =
+                    await fetch(
+                      `/api/projects/${project._id}/status`,
+                      {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type":
+                            "application/json",
+                        },
+                        body: JSON.stringify({
+                          status:
+                            "closed",
+                        }),
+                      }
+                    );
+
+                  const data =
+                    await res.json();
+
+                  if (!res.ok) {
+                    throw new Error(
+                      data.error ||
+                      "Could not close project"
+                    );
+                  }
+
+                  toast.success(
+                    "Project fixed and closed"
+                  );
+
+                  router.refresh();
+                } catch (error) {
+                  toast.error(
+                    error.message
+                  );
+                }
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              <CheckCircle2
+                size={16}
+              />
+              Fix & Close Project
+            </button>
+          )}
         </div>
       </nav>
 
@@ -311,7 +395,83 @@ export default function ProjectWorkspace({
             </div>
           </div>
         </section>
+        {isClosed && (
+          <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                size={21}
+                className="mt-0.5 shrink-0 text-green-600"
+              />
 
+              <div>
+                <p className="font-bold text-green-800">
+                  Project Fixed & Closed
+                </p>
+
+                <p className="mt-1 text-sm text-green-700">
+                  This project has been finalized.
+                  Editors can no longer modify files,
+                  links, or team members.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {isAdmin && isClosed && (
+          <button
+            onClick={async () => {
+              const confirmed =
+                window.confirm(
+                  "Reopen this project? Editors will be allowed to make changes again."
+                );
+
+              if (!confirmed) {
+                return;
+              }
+
+              try {
+                const res =
+                  await fetch(
+                    `/api/projects/${project._id}/status`,
+                    {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type":
+                          "application/json",
+                      },
+                      body: JSON.stringify({
+                        status:
+                          "open",
+                      }),
+                    }
+                  );
+
+                const data =
+                  await res.json();
+
+                if (!res.ok) {
+                  throw new Error(
+                    data.error ||
+                    "Could not reopen project"
+                  );
+                }
+
+                toast.success(
+                  "Project reopened"
+                );
+
+                router.refresh();
+              } catch (error) {
+                toast.error(
+                  error.message
+                );
+              }
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-50"
+          >
+            Reopen Project
+          </button>
+        )}
         {/* TASK STATS */}
 
         <section className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -489,10 +649,11 @@ export default function ProjectWorkspace({
                 onUpload={() =>
                   setFileModal("create")
                 }
-                onEdit={(file) =>
-                  setFileModal(file)
-                }
+                onEdit={openFile}
                 onDelete={deleteFile}
+                onMarkError={(file) =>
+                  setErrorFile(file)
+                }
               />
             )}
 
@@ -564,7 +725,7 @@ export default function ProjectWorkspace({
             setFiles((prev) =>
               prev.map((item) =>
                 String(item._id) ===
-                String(file._id)
+                  String(file._id)
                   ? file
                   : item
               )
@@ -593,6 +754,55 @@ export default function ProjectWorkspace({
             setLinkModal(false);
             toast.success(
               "Link added"
+            );
+          }}
+        />
+      )}
+      {editorFile && (
+        <FileEditorModal
+          project={project}
+          file={editorFile}
+          onClose={() =>
+            setEditorFile(null)
+          }
+          onUpdated={(updatedFile) => {
+            setFiles((prev) =>
+              prev.map((item) =>
+                String(item._id) ===
+                  String(updatedFile._id)
+                  ? updatedFile
+                  : item
+              )
+            );
+
+            setEditorFile(null);
+
+            toast.success(
+              "File saved successfully"
+            );
+          }}
+        />
+      )}
+
+      {errorFile && (
+        <MarkErrorModal
+          project={project}
+          file={errorFile}
+          onClose={() =>
+            setErrorFile(null)
+          }
+          onUpdated={(updatedFile) => {
+            setFiles((prev) =>
+              prev.map((item) =>
+                String(item._id) ===
+                  String(updatedFile._id)
+                  ? updatedFile
+                  : item
+              )
+            );
+
+            toast.success(
+              "Error marked"
             );
           }}
         />
@@ -642,22 +852,21 @@ function TaskRow({
           <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300">
             {task.status ===
               "completed" && (
-              <CheckCircle2
-                size={14}
-                className="text-green-600"
-              />
-            )}
+                <CheckCircle2
+                  size={14}
+                  className="text-green-600"
+                />
+              )}
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3
-                className={`break-words font-semibold ${
-                  task.status ===
+                className={`break-words font-semibold ${task.status ===
                   "completed"
-                    ? "text-slate-400 line-through"
-                    : "text-slate-900"
-                }`}
+                  ? "text-slate-400 line-through"
+                  : "text-slate-900"
+                  }`}
               >
                 {task.title}
               </h3>
@@ -780,11 +989,10 @@ function Tab({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-        active
-          ? "bg-blue-600 text-white"
-          : "text-slate-600 hover:bg-slate-100"
-      }`}
+      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${active
+        ? "bg-blue-600 text-white"
+        : "text-slate-600 hover:bg-slate-100"
+        }`}
     >
       {icon}
       {label}
@@ -865,17 +1073,16 @@ function Overview({
             <div
               className="h-full rounded-full bg-blue-600"
               style={{
-                width: `${
-                  tasks.length
-                    ? (tasks.filter(
-                        (task) =>
-                          task.status ===
-                          "completed"
-                      ).length /
-                        tasks.length) *
-                      100
-                    : 0
-                }%`,
+                width: `${tasks.length
+                  ? (tasks.filter(
+                    (task) =>
+                      task.status ===
+                      "completed"
+                  ).length /
+                    tasks.length) *
+                  100
+                  : 0
+                  }%`,
               }}
             />
           </div>
@@ -909,17 +1116,18 @@ function FilesTab({
   onUpload,
   onEdit,
   onDelete,
+  onMarkError,
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">
-            Files
+            Project Files
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Shared project resources.
+            Browse project files and folders.
           </p>
         </div>
 
@@ -929,130 +1137,87 @@ function FilesTab({
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <Plus size={17} />
-            Upload File
+            Upload
           </button>
         )}
       </div>
 
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6">
         {files.length === 0 ? (
           <Empty
             icon={<FileText size={24} />}
             text="No files yet"
           />
         ) : (
-          files.map((file) => {
-            const downloadUrl =
-              file.url?.includes(
-                "/upload/"
-              )
-                ? file.url.replace(
-                    "/upload/",
-                    "/upload/fl_attachment/"
-                  )
-                : file.url;
-
-            return (
-              <div
-                key={file._id}
-                className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                {/* FILE INFO */}
-
-                <div className="flex min-w-0 gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                    <FileText size={20} />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="break-words font-semibold text-slate-900">
-                      {file.name}
-                    </h3>
-
-                    {file.description && (
-                      <p className="mt-1 break-words text-sm text-slate-500">
-                        {file.description}
-                      </p>
-                    )}
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      Uploaded by{" "}
-                      {file.uploadedBy?.name ||
-                        "Unknown"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  {/* OPEN */}
-
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <ExternalLink
-                      size={14}
-                    />
-
-                    Open
-                  </a>
-
-                  {/* DOWNLOAD */}
-
-                  <a
-                    href={downloadUrl}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <Download
-                      size={14}
-                    />
-
-                    Download
-                  </a>
-
-                  {/* EDIT — ADMIN ONLY */}
-
-                  {isAdmin && (
-                    <button
-                      onClick={() =>
-                        onEdit(file)
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      <Pencil
-                        size={14}
-                      />
-
-                      Edit
-                    </button>
-                  )}
-
-                  {/* DELETE — ADMIN + EDITOR */}
-
-                  {canEditResources && (
-                    <button
-                      onClick={() =>
-                        onDelete(file._id)
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2
-                        size={14}
-                      />
-
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
+          <FileTree
+            files={files}
+            onOpenFile={(file) =>
+              onEdit(file)
+            }
+          />
         )}
       </div>
+
+      {/* ERROR FILE LIST */}
+
+      {files.some(
+        (file) => file.hasError
+      ) && (
+          <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4">
+            <p className="font-bold text-red-700">
+              Files requiring attention
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {files
+                .filter(
+                  (file) =>
+                    file.hasError
+                )
+                .map((file) => (
+                  <div
+                    key={file._id}
+                    className="flex flex-col gap-2 rounded-xl bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {file.path ||
+                          file.name}
+                      </p>
+
+                      {file.errorLine && (
+                        <p className="text-xs font-semibold text-red-500">
+                          Line{" "}
+                          {
+                            file.errorLine
+                          }
+                        </p>
+                      )}
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {
+                          file.errorDescription
+                        }
+                      </p>
+                    </div>
+
+                    {canEditResources && (
+                      <button
+                        onClick={() =>
+                          onMarkError(
+                            file
+                          )
+                        }
+                        className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
+                      >
+                        Update Error
+                      </button>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
     </div>
   );
 }

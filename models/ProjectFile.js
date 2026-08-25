@@ -9,6 +9,12 @@ const ProjectFileSchema = new mongoose.Schema(
       index: true,
     },
 
+    /*
+     * ============================================================
+     * FILE NAME
+     * ============================================================
+     */
+
     name: {
       type: String,
       required: true,
@@ -18,6 +24,26 @@ const ProjectFileSchema = new mongoose.Schema(
     originalName: {
       type: String,
       required: true,
+      trim: true,
+    },
+
+    /*
+     * ============================================================
+     * FILE PATH
+     * ============================================================
+     *
+     * Examples:
+     *
+     * model.js
+     *
+     * lib/model.js
+     *
+     * src/components/Button.jsx
+     */
+
+    path: {
+      type: String,
+      default: "",
       trim: true,
     },
 
@@ -71,6 +97,67 @@ const ProjectFileSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+
+    /*
+     * ============================================================
+     * ERROR TRACKING
+     * ============================================================
+     */
+
+    hasError: {
+      type: Boolean,
+      default: false,
+    },
+
+    errorDescription: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    errorLine: {
+      type: Number,
+      default: null,
+    },
+
+    errorMarkedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    errorMarkedAt: {
+      type: Date,
+      default: null,
+    },
+
+    /*
+     * ============================================================
+     * FIX TRACKING
+     * ============================================================
+     */
+
+    lastFixedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastFixedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    fixNote: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    version: {
+      type: Number,
+      default: 1,
     },
   },
   {

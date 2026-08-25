@@ -35,6 +35,41 @@ const ProjectSchema = new Schema(
       trim: true,
     },
 
+    /*
+     * ============================================================
+     * PROJECT STATUS
+     * ============================================================
+     *
+     * open   -> normal project
+     * closed -> fixed/finalized project
+     *
+     * Only an ADMIN can reopen a closed project.
+     */
+
+    status: {
+      type: String,
+      enum: ["open", "closed"],
+      default: "open",
+    },
+
+    /*
+     * ============================================================
+     * POWERPOINT
+     * ============================================================
+     */
+
+    pptUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pptName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     members: {
       type: [ProjectMemberSchema],
       default: [],

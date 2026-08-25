@@ -31,7 +31,45 @@ export default function FileModal({
    * GET FILES FROM A DROPPED FILE/FOLDER
    * ============================================================
    */
+  function isEditableFile(file) {
+    const editableExtensions = [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "css",
+      "scss",
+      "html",
+      "json",
+      "md",
+      "txt",
+      "xml",
+      "yml",
+      "yaml",
+      "py",
+      "java",
+      "c",
+      "cpp",
+      "h",
+      "hpp",
+      "cs",
+      "php",
+      "sql",
+      "sh",
+      "bash",
+      "env",
+    ];
 
+    const extension =
+      file.name
+        ?.split(".")
+        .pop()
+        ?.toLowerCase();
+
+    return editableExtensions.includes(
+      extension
+    );
+  }
   async function readDirectory(entry, parentPath = "") {
     const files = [];
 
@@ -303,7 +341,7 @@ export default function FileModal({
     if (!signRes.ok) {
       throw new Error(
         signData.error ||
-          "Could not prepare upload"
+        "Could not prepare upload"
       );
     }
 
@@ -353,7 +391,7 @@ export default function FileModal({
     if (!uploadRes.ok) {
       throw new Error(
         uploadData.error?.message ||
-          `Cloudinary upload failed for ${file.name}`
+        `Cloudinary upload failed for ${file.name}`
       );
     }
 
@@ -401,11 +439,12 @@ export default function FileModal({
             extension:
               file.name.includes(".")
                 ? file.name
-                    .split(".")
-                    .pop()
+                  .split(".")
+                  .pop()
                 : "",
 
-            editable: false,
+            editable:
+              isEditableFile(file),
           }),
         }
       );
@@ -416,7 +455,7 @@ export default function FileModal({
     if (!saveRes.ok) {
       throw new Error(
         saveData.error ||
-          `Could not save ${file.name}`
+        `Could not save ${file.name}`
       );
     }
 
@@ -471,7 +510,7 @@ export default function FileModal({
         if (!res.ok) {
           throw new Error(
             data.error ||
-              "Could not update file"
+            "Could not update file"
           );
         }
 
@@ -523,7 +562,7 @@ export default function FileModal({
           Math.round(
             ((i + 1) /
               selectedFiles.length) *
-              100
+            100
           );
 
         setUploadProgress(
@@ -565,7 +604,7 @@ export default function FileModal({
 
       alert(
         error.message ||
-          "Upload failed"
+        "Upload failed"
       );
     } finally {
       setLoading(false);
@@ -637,11 +676,10 @@ export default function FileModal({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`rounded-2xl border-2 border-dashed p-7 text-center transition ${
-                  dragging
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-blue-400 hover:bg-blue-50/30"
-                }`}
+                className={`rounded-2xl border-2 border-dashed p-7 text-center transition ${dragging
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-slate-200 hover:border-blue-400 hover:bg-blue-50/30"
+                  }`}
               >
                 <UploadCloud
                   size={34}
@@ -652,12 +690,11 @@ export default function FileModal({
                   {dragging
                     ? "Drop files or folder here"
                     : selectedFiles.length
-                      ? `${selectedFiles.length} file${
-                          selectedFiles.length ===
-                          1
-                            ? ""
-                            : "s"
-                        } selected`
+                      ? `${selectedFiles.length} file${selectedFiles.length ===
+                        1
+                        ? ""
+                        : "s"
+                      } selected`
                       : "Drag & drop files or a folder"}
                 </p>
 
@@ -730,46 +767,46 @@ export default function FileModal({
 
               {selectedFiles.length >
                 0 && (
-                <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Selected
-                  </p>
+                  <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Selected
+                    </p>
 
-                  <div className="space-y-1">
-                    {selectedFiles
-                      .slice(0, 50)
-                      .map(
-                        (
-                          selected,
-                          index
-                        ) => (
-                          <div
-                            key={`${selected.relativePath}-${index}`}
-                            className="truncate rounded-lg bg-white px-3 py-2 text-xs text-slate-600"
-                            title={
-                              selected.relativePath
-                            }
-                          >
-                            📄{" "}
-                            {
-                              selected.relativePath
-                            }
-                          </div>
-                        )
-                      )}
+                    <div className="space-y-1">
+                      {selectedFiles
+                        .slice(0, 50)
+                        .map(
+                          (
+                            selected,
+                            index
+                          ) => (
+                            <div
+                              key={`${selected.relativePath}-${index}`}
+                              className="truncate rounded-lg bg-white px-3 py-2 text-xs text-slate-600"
+                              title={
+                                selected.relativePath
+                              }
+                            >
+                              📄{" "}
+                              {
+                                selected.relativePath
+                              }
+                            </div>
+                          )
+                        )}
 
-                    {selectedFiles.length >
-                      50 && (
-                      <p className="px-3 py-1 text-xs text-slate-400">
-                        +
-                        {selectedFiles.length -
-                          50}{" "}
-                        more files
-                      </p>
-                    )}
+                      {selectedFiles.length >
+                        50 && (
+                          <p className="px-3 py-1 text-xs text-slate-400">
+                            +
+                            {selectedFiles.length -
+                              50}{" "}
+                            more files
+                          </p>
+                        )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </>
           )}
 
@@ -865,7 +902,7 @@ export default function FileModal({
               : editing
                 ? "Save Changes"
                 : selectedFiles.length >
-                    1
+                  1
                   ? `Upload ${selectedFiles.length} Files`
                   : "Upload File"}
           </button>
