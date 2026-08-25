@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import connectDB from "@/db/connectDb";
 import Project from "@/models/Project";
 import ProjectInvitation from "@/models/ProjectInvitation";
+import User from "@/models/User";
 
 import { authOptions } from "@/lib/authOptions";
 import { hashToken } from "@/lib/shareToken";
@@ -13,7 +14,7 @@ export async function POST(
   { params }
 ) {
   try {
-    await connectDB();
+    const { token } = await params;
 
     const session =
       await getServerSession(authOptions);
@@ -22,13 +23,13 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "You must be logged in",
+            "You must be logged in to accept this invitation",
         },
         { status: 401 }
       );
     }
 
-    const { token } = await params;
+    await connectDB();
 
     const tokenHash =
       hashToken(token);
@@ -45,20 +46,30 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Invalid or already-used invitation",
+            "Invitation is invalid or has already been used",
         },
         { status: 400 }
       );
     }
 
-    if (
-      new Date() >
-      invitation.expiresAt
-    ) {
-      invitation.status = "expired";
-      invitation.active = false;
+    // -----------------------------------------
+    // CHECK EXPIRATION
+    // -----------------------------------------
 
-      await invitation.save();
+    if (
+      !invitation.expiresAt ||
+      new Date() >
+        new Date(invitation.expiresAt)
+    ) {
+      await ProjectInvitation.updateOne(
+        { _id: invitation._id },
+        {
+          $set: {
+            active: false,
+            status: "expired",
+          },
+        }
+      );
 
       return NextResponse.json(
         {
@@ -69,21 +80,9 @@ export async function POST(
       );
     }
 
-    // If this was specifically sent to an email,
-    // only that account can accept it.
-    if (
-      invitation.email &&
-      session.user.email?.toLowerCase() !==
-        invitation.email.toLowerCase()
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            `This invitation was sent to ${invitation.email}`,
-        },
-        { status: 403 }
-      );
-    }
+    // -----------------------------------------
+    // GET PROJECT
+    // -----------------------------------------
 
     const project =
       await Project.findById(
@@ -94,25 +93,82 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Project no longer exists",
+            "The project no longer exists",
         },
         { status: 404 }
       );
     }
 
+    // -----------------------------------------
+    // GET CURRENT USER
+    // -----------------------------------------
+
+    const user =
+      await User.findById(
+        session.user.id
+      );
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error:
+            "User account not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    // -----------------------------------------
+    // EMAIL-BASED INVITATIONS
+    // -----------------------------------------
+
+    if (invitation.email) {
+      const invitedEmail =
+        invitation.email
+          .trim()
+          .toLowerCase();
+
+      const currentEmail =
+        String(user.email || "")
+          .trim()
+          .toLowerCase();
+
+      if (
+        !currentEmail ||
+        currentEmail !== invitedEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "This invitation was sent to a different email address. Sign in with the invited account.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // -----------------------------------------
+    // CHECK IF ALREADY MEMBER
+    // -----------------------------------------
+
     const alreadyMember =
       project.members.some(
         (member) =>
           String(member.user) ===
-          String(session.user.id)
+          String(user._id)
       );
 
     if (alreadyMember) {
-      invitation.accepted = true;
-      invitation.active = false;
-      invitation.status = "accepted";
-
-      await invitation.save();
+      await ProjectInvitation.updateOne(
+        { _id: invitation._id },
+        {
+          $set: {
+            active: false,
+            accepted: true,
+            status: "accepted",
+          },
+        }
+      );
 
       return NextResponse.json({
         success: true,
@@ -121,18 +177,31 @@ export async function POST(
       });
     }
 
+    // -----------------------------------------
+    // ADD USER TO PROJECT
+    // -----------------------------------------
+
     project.members.push({
-      user: session.user.id,
+      user: user._id,
       role: invitation.role,
     });
 
     await project.save();
 
-    invitation.accepted = true;
-    invitation.active = false;
-    invitation.status = "accepted";
+    // -----------------------------------------
+    // MARK INVITATION USED
+    // -----------------------------------------
 
-    await invitation.save();
+    await ProjectInvitation.updateOne(
+      { _id: invitation._id },
+      {
+        $set: {
+          active: false,
+          accepted: true,
+          status: "accepted",
+        },
+      }
+    );
 
     return NextResponse.json({
       success: true,

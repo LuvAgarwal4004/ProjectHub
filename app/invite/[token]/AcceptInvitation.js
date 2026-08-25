@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+
 import {
   CheckCircle2,
   ArrowRight,
+  Mail,
 } from "lucide-react";
 
 export default function AcceptInvitation({
   token,
   invitation,
+  currentUserEmail,
 }) {
   const router = useRouter();
 
@@ -26,6 +29,10 @@ export default function AcceptInvitation({
           `/api/invitations/${token}/accept`,
           {
             method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
           }
         );
 
@@ -50,7 +57,8 @@ export default function AcceptInvitation({
       router.refresh();
     } catch (error) {
       toast.error(
-        error.message
+        error.message ||
+          "Something went wrong"
       );
     } finally {
       setLoading(false);
@@ -66,11 +74,17 @@ export default function AcceptInvitation({
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4">
       <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-9">
+
+        {/* ICON */}
+
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
           <CheckCircle2 size={28} />
         </div>
 
+        {/* HEADER */}
+
         <div className="mt-6 text-center">
+
           <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
             Project Invitation
           </p>
@@ -83,9 +97,52 @@ export default function AcceptInvitation({
             {invitation.project.description ||
               "You have been invited to join this project."}
           </p>
+
         </div>
 
-        <div className="mt-7 rounded-2xl bg-slate-50 p-4">
+        {/* EMAIL */}
+
+        {invitation.email && (
+          <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+
+            <div className="flex items-start gap-3">
+
+              <div className="mt-0.5 text-slate-400">
+                <Mail size={18} />
+              </div>
+
+              <div className="min-w-0">
+
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Invitation sent to
+                </p>
+
+                <p className="mt-1 break-all text-sm font-semibold text-slate-800">
+                  {invitation.email}
+                </p>
+
+                {currentUserEmail &&
+                  currentUserEmail.toLowerCase() !==
+                    invitation.email.toLowerCase() && (
+                    <p className="mt-2 text-xs leading-5 text-amber-600">
+                      You are currently logged in
+                      with a different email. Sign
+                      in with the invited account to
+                      accept this invitation.
+                    </p>
+                  )}
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ROLE */}
+
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Your role
           </p>
@@ -93,11 +150,22 @@ export default function AcceptInvitation({
           <p className="mt-1 font-bold capitalize text-slate-800">
             {role}
           </p>
+
         </div>
+
+        {/* ACCEPT */}
 
         <button
           onClick={acceptInvitation}
-          disabled={loading}
+          disabled={
+            loading ||
+            (
+              invitation.email &&
+              currentUserEmail &&
+              currentUserEmail.toLowerCase() !==
+                invitation.email.toLowerCase()
+            )
+          }
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading
@@ -108,6 +176,7 @@ export default function AcceptInvitation({
             <ArrowRight size={17} />
           )}
         </button>
+
       </div>
     </main>
   );

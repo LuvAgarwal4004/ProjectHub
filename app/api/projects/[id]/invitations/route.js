@@ -1,15 +1,16 @@
-import crypto from "crypto";
-
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import connectDb from "@/db/connectDb";
+import connectDB from "@/db/connectDb";
 import Project from "@/models/Project";
 import ProjectInvitation from "@/models/ProjectInvitation";
 import User from "@/models/User";
 
 import { authOptions } from "@/lib/authOptions";
-// import { sendProjectInvitation } from "@/lib/mailer";
+import {
+  generateToken,
+  hashToken,
+} from "@/lib/shareToken";
 
 export async function POST(req, { params }) {
   try {
@@ -25,7 +26,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const project =
       await Project.findById(id);
@@ -37,19 +38,26 @@ export async function POST(req, { params }) {
       );
     }
 
-    const admin =
+    // -----------------------------------------
+    // ONLY PROJECT ADMIN CAN INVITE
+    // -----------------------------------------
+
+    const currentMember =
       project.members.find(
-        (m) =>
-          String(m.user) ===
+        (member) =>
+          String(member.user) ===
           String(session.user.id)
       );
 
     if (
-      !admin ||
-      admin.role !== "admin"
+      !currentMember ||
+      currentMember.role !== "admin"
     ) {
       return NextResponse.json(
-        { error: "Admin only" },
+        {
+          error:
+            "Only the project admin can invite users",
+        },
         { status: 403 }
       );
     }
@@ -59,115 +67,169 @@ export async function POST(req, { params }) {
     const email =
       String(body.email || "")
         .trim()
-        .toLowerCase();
+        .toLowerCase() || null;
 
     const role =
-      body.role === "editor"
-        ? "editor"
-        : "viewer";
+      body.role || "viewer";
 
-    if (!email) {
-      return NextResponse.json(
-        { error: "Email required" },
-        { status: 400 }
-      );
-    }
+    // -----------------------------------------
+    // VALIDATE ROLE
+    // -----------------------------------------
 
-    // const alreadyMember =
-    //   project.members.some(
-    //     async (member) => {
-    //       const user =
-    //         await User.findById(
-    //           member.user
-    //         );
-
-    //       return (
-    //         user?.email?.toLowerCase() ===
-    //         email
-    //       );
-    //     }
-    //   );
-
-    const existingUser =
-      await User.findOne({ email });
-
-    if (existingUser) {
-      const exists =
-        project.members.some(
-          (member) =>
-            String(member.user) ===
-            String(existingUser._id)
-        );
-
-      if (exists) {
-        return NextResponse.json(
-          {
-            error:
-              "This user is already a member",
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    const existingInvitation =
-      await ProjectInvitation.findOne({
-        project: id,
-        email,
-        status: "pending",
-      });
-
-    if (existingInvitation) {
+    if (
+      !["viewer", "editor"].includes(role)
+    ) {
       return NextResponse.json(
         {
           error:
-            "An invitation is already pending for this email",
+            "Invalid invitation role",
         },
         { status: 400 }
       );
     }
 
-    const token =
-      crypto.randomBytes(32).toString("hex");
+    // -----------------------------------------
+    // VALIDATE EMAIL
+    // -----------------------------------------
 
-    const invitation =
-      await ProjectInvitation.create({
-        project: id,
-        email,
-        role,
-        token,
-        invitedBy: session.user.id,
-        expiresAt:
-          new Date(
-            Date.now() +
-              7 *
-                24 *
-                60 *
-                60 *
-                1000
-          ),
-      });
+    if (
+      email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid email address",
+        },
+        { status: 400 }
+      );
+    }
 
-    // await sendProjectInvitation({
-    //   email,
-    //   projectName: project.name,
-    //   inviterName:
-    //     session.user.name ||
-    //     "A project admin",
-    //   role,
-    //   token,
-    // });
+    // -----------------------------------------
+    // IF USER ALREADY EXISTS,
+    // DON'T INVITE EXISTING MEMBER
+    // -----------------------------------------
+
+    if (email) {
+      const existingUser =
+        await User.findOne({ email });
+
+      if (existingUser) {
+        const alreadyMember =
+          project.members.some(
+            (member) =>
+              String(member.user) ===
+              String(existingUser._id)
+          );
+
+        if (alreadyMember) {
+          return NextResponse.json(
+            {
+              error:
+                "This user is already a member of the project",
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // -----------------------------------------
+    // INVALIDATE PREVIOUS INVITATIONS
+    // -----------------------------------------
+
+    if (email) {
+      await ProjectInvitation.updateMany(
+        {
+          project: project._id,
+          email,
+          status: "pending",
+          active: true,
+        },
+        {
+          $set: {
+            active: false,
+            status: "expired",
+          },
+        }
+      );
+    }
+
+    // -----------------------------------------
+    // GENERATE RAW TOKEN
+    // -----------------------------------------
+
+    const rawToken =
+      generateToken();
+
+    const tokenHash =
+      hashToken(rawToken);
+
+    // -----------------------------------------
+    // EXPIRY = 7 DAYS
+    // -----------------------------------------
+
+    const expiresAt =
+      new Date();
+
+    expiresAt.setDate(
+      expiresAt.getDate() + 7
+    );
+
+    // -----------------------------------------
+    // STORE ONLY HASH
+    // -----------------------------------------
+
+    await ProjectInvitation.create({
+      project: project._id,
+      invitedBy: session.user.id,
+
+      email,
+
+      role,
+
+      tokenHash,
+
+      expiresAt,
+
+      active: true,
+
+      accepted: false,
+
+      status: "pending",
+    });
+
+    // -----------------------------------------
+    // CREATE INVITATION URL
+    // -----------------------------------------
+
+    const origin =
+      process.env.NEXTAUTH_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      req.headers.get("origin") ||
+      new URL(req.url).origin;
+
+    const invitationLink =
+      `${origin}/invite/${rawToken}`;
 
     return NextResponse.json({
       success: true,
-      invitationId:
-        invitation._id,
+      invitationLink,
+      expiresAt,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "INVITATION CREATE ERROR:",
+      error
+    );
 
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to create invitation",
+      },
       { status: 500 }
     );
   }
