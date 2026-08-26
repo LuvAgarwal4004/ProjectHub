@@ -1,4 +1,12 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Fix querySrv ECONNREFUSED issues on Windows/ISP DNS resolvers
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch {
+  // Ignore if custom DNS is not supported in current environment
+}
 
 const MONGO_URI = process.env.MONGO_URI;
 
