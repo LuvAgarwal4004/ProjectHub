@@ -211,6 +211,29 @@ function ProjectCard({ project, userId }) {
             "No description added yet."}
         </p>
 
+        {/* OTHER INFO HIGHLIGHTS */}
+        {(Number(project.moneyStatus?.prizeMoney || 0) > 0 ||
+          (project.certificates?.length || 0) > 0 ||
+          (project.judges?.length || 0) > 0) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {Number(project.moneyStatus?.prizeMoney || 0) > 0 && (
+              <span className="inline-flex items-center rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/50">
+                💰 {project.moneyStatus?.currency || "$"}{Number(project.moneyStatus.prizeMoney).toLocaleString()}
+              </span>
+            )}
+            {(project.certificates?.length || 0) > 0 && (
+              <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/50">
+                📜 {project.certificates.length} Cert{project.certificates.length === 1 ? "" : "s"}
+              </span>
+            )}
+            {(project.judges?.length || 0) > 0 && (
+              <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/50">
+                👨‍⚖️ {project.judges.length} Judge{project.judges.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+        )}
+
 
         {/* DETAILS */}
 

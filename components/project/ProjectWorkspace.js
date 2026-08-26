@@ -23,11 +23,16 @@ import {
   ExternalLink,
   Star,
   Pencil,
+  Award,
+  Wallet,
+  FileCheck,
+  Sparkles,
 } from "lucide-react";
 
 import CreateTaskModal from "./CreateTaskModal";
 import FileModal from "./FileModal";
 import LinkModal from "./LinkModal";
+import OtherInfoTab from "./OtherInfoTab";
 
 export default function ProjectWorkspace({
   project,
@@ -281,6 +286,39 @@ export default function ProjectWorkspace({
               Hub
             </span>
           </Link>
+
+          <button
+            onClick={() => {
+              setTab("otherInfo");
+              const el = document.getElementById("project-workspace-tabs");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4 ${
+              tab === "otherInfo"
+                ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
+            }`}
+          >
+            <Award size={16} />
+            <span className="hidden sm:inline">Other Info</span>
+            <span className="sm:hidden">Info</span>
+            {(project.judges?.length || 0) +
+              (project.certificates?.length || 0) +
+              (project.moneyStatus?.ads?.length || 0) >
+              0 && (
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[11px] font-bold ${
+                  tab === "otherInfo"
+                    ? "bg-white text-blue-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {(project.judges?.length || 0) +
+                  (project.certificates?.length || 0) +
+                  (project.moneyStatus?.ads?.length || 0)}
+              </span>
+            )}
+          </button>
 
           {isAdmin ? (
             <Link
@@ -572,7 +610,7 @@ export default function ProjectWorkspace({
 
         {/* TABS */}
 
-        <section className="mt-8">
+        <section id="project-workspace-tabs" className="mt-8">
           <div className="overflow-x-auto pb-1">
             <div className="flex min-w-max gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
               <Tab
@@ -626,6 +664,23 @@ export default function ProjectWorkspace({
                 }
                 label={`Team (${project.members.length})`}
               />
+
+              <Tab
+                active={
+                  tab === "otherInfo"
+                }
+                onClick={() =>
+                  setTab("otherInfo")
+                }
+                icon={
+                  <Award size={17} />
+                }
+                label={`Other Info (${
+                  (project.judges?.length || 0) +
+                  (project.certificates?.length || 0) +
+                  (project.moneyStatus?.ads?.length || 0)
+                })`}
+              />
             </div>
           </div>
 
@@ -636,6 +691,7 @@ export default function ProjectWorkspace({
                 tasks={tasks}
                 files={files}
                 links={links}
+                onSelectTab={setTab}
               />
             )}
 
@@ -673,6 +729,15 @@ export default function ProjectWorkspace({
             {tab === "team" && (
               <TeamTab
                 members={project.members}
+              />
+            )}
+
+            {tab === "otherInfo" && (
+              <OtherInfoTab
+                project={project}
+                canEditResources={canEditResources}
+                isAdmin={isAdmin}
+                onProjectUpdated={refresh}
               />
             )}
           </div>
@@ -1005,20 +1070,37 @@ function Overview({
   tasks,
   files,
   links,
+  onSelectTab,
 }) {
+  const judgesCount = project.judges?.length || 0;
+  const certsCount = project.certificates?.length || 0;
+  const currency = project.moneyStatus?.currency || "$";
+  const prizeMoney = Number(project.moneyStatus?.prizeMoney || 0);
+
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-        <h2 className="text-lg font-bold text-slate-900">
-          Project Overview
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">
+            Project Overview
+          </h2>
+          {onSelectTab && (
+            <button
+              onClick={() => onSelectTab("otherInfo")}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+            >
+              <Award size={13} />
+              View Other Info →
+            </button>
+          )}
+        </div>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {project.description ||
             "No description available."}
         </p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <Info
             label="Created By"
             value={
@@ -1035,13 +1117,23 @@ function Overview({
           />
 
           <Info
-            label="Files"
-            value={files.length}
+            label="Files & Links"
+            value={`${files.length} files · ${links.length} links`}
           />
 
           <Info
-            label="Links"
-            value={links.length}
+            label="Judges"
+            value={`${judgesCount} evaluator${judgesCount === 1 ? "" : "s"}`}
+          />
+
+          <Info
+            label="Certificates"
+            value={`${certsCount} stored`}
+          />
+
+          <Info
+            label="Prize / Grant"
+            value={`${currency}${prizeMoney.toLocaleString()}`}
           />
         </div>
       </div>
