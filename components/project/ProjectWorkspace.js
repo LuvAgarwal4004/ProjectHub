@@ -33,6 +33,16 @@ import CreateTaskModal from "./CreateTaskModal";
 import FileModal from "./FileModal";
 import LinkModal from "./LinkModal";
 import OtherInfoTab from "./OtherInfoTab";
+const EDITABLE_EXTENSIONS = [
+  "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
+  "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
+  "php", "sql", "sh", "bash", "env",
+];
+
+function isEditableFileName(name = "") {
+  const extension = name.split(".").pop()?.toLowerCase();
+  return EDITABLE_EXTENSIONS.includes(extension);
+}
 
 export default function ProjectWorkspace({
   project,
@@ -293,11 +303,10 @@ export default function ProjectWorkspace({
               const el = document.getElementById("project-workspace-tabs");
               if (el) el.scrollIntoView({ behavior: "smooth" });
             }}
-            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4 ${
-              tab === "otherInfo"
+            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4 ${tab === "otherInfo"
                 ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
-            }`}
+              }`}
           >
             <Award size={16} />
             <span className="hidden sm:inline">Other Info</span>
@@ -306,18 +315,17 @@ export default function ProjectWorkspace({
               (project.certificates?.length || 0) +
               (project.moneyStatus?.ads?.length || 0) >
               0 && (
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[11px] font-bold ${
-                  tab === "otherInfo"
-                    ? "bg-white text-blue-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
-              >
-                {(project.judges?.length || 0) +
-                  (project.certificates?.length || 0) +
-                  (project.moneyStatus?.ads?.length || 0)}
-              </span>
-            )}
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[11px] font-bold ${tab === "otherInfo"
+                      ? "bg-white text-blue-700"
+                      : "bg-blue-100 text-blue-700"
+                    }`}
+                >
+                  {(project.judges?.length || 0) +
+                    (project.certificates?.length || 0) +
+                    (project.moneyStatus?.ads?.length || 0)}
+                </span>
+              )}
           </button>
 
           {isAdmin ? (
@@ -675,11 +683,10 @@ export default function ProjectWorkspace({
                 icon={
                   <Award size={17} />
                 }
-                label={`Other Info (${
-                  (project.judges?.length || 0) +
+                label={`Other Info (${(project.judges?.length || 0) +
                   (project.certificates?.length || 0) +
                   (project.moneyStatus?.ads?.length || 0)
-                })`}
+                  })`}
               />
             </div>
           </div>

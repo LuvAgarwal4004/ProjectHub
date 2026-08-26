@@ -10,7 +10,16 @@ import { authOptions } from "@/lib/authOptions";
 import {
   getProjectMember,
 } from "@/lib/projectAccess";
+const EDITABLE_EXTENSIONS = [
+  "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
+  "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
+  "php", "sql", "sh", "bash", "env",
+];
 
+function isEditableFileName(name = "") {
+  const extension = name.split(".").pop()?.toLowerCase();
+  return EDITABLE_EXTENSIONS.includes(extension);
+}
 export async function GET(
   req,
   { params }
@@ -83,11 +92,11 @@ export async function GET(
       );
     }
 
-    if (!file.editable) {
+    if (!isEditableFileName(file.path || file.name)) {
       return NextResponse.json(
         {
           error:
-            "This file is not editable.",
+            "This file type cannot be edited.",
         },
         { status: 400 }
       );
@@ -217,11 +226,11 @@ export async function PATCH(
       );
     }
 
-    if (!file.editable) {
+    if (!isEditableFileName(file.path || file.name)) {
       return NextResponse.json(
         {
           error:
-            "This file cannot be edited.",
+            "This file type cannot be edited.",
         },
         { status: 400 }
       );
@@ -232,7 +241,7 @@ export async function PATCH(
 
     const content =
       typeof body.content ===
-      "string"
+        "string"
         ? body.content
         : null;
 
