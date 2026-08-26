@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import connectDb from "@/db/connectDb";
+import connectDB from "@/db/connectDb";
 import Project from "@/models/Project";
 import ProjectLink from "@/models/ProjectLink";
 
 import { authOptions } from "@/lib/authOptions";
 
-export async function DELETE(req, { params }) {
+export async function DELETE(
+  req,
+  { params }
+) {
   try {
-    const { id, linkId } = await params;
+    const {
+      id,
+      linkId,
+    } = await params;
 
     const session =
       await getServerSession(authOptions);
@@ -21,7 +27,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const project =
       await Project.findById(id);
@@ -33,18 +39,24 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const member = project.members.find(
-      (m) =>
-        String(m.user) ===
-        String(session.user.id)
-    );
+    const member =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
 
     if (
       !member ||
-      !["admin", "editor"].includes(member.role)
+      !["admin", "editor"].includes(
+        member.role
+      )
     ) {
       return NextResponse.json(
-        { error: "You cannot delete links" },
+        {
+          error:
+            "You cannot delete links",
+        },
         { status: 403 }
       );
     }
@@ -66,8 +78,16 @@ export async function DELETE(req, { params }) {
       success: true,
     });
   } catch (error) {
+    console.error(
+      "DELETE LINK ERROR:",
+      error
+    );
+
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to delete link",
+      },
       { status: 500 }
     );
   }

@@ -17,6 +17,10 @@ export default async function InvitePage({
   const session =
     await getServerSession(authOptions);
 
+  // -----------------------------------------
+  // USER MUST BE LOGGED IN
+  // -----------------------------------------
+
   if (!session?.user?.id) {
     redirect(
       `/login?callbackUrl=/invite/${token}`
@@ -25,8 +29,16 @@ export default async function InvitePage({
 
   await connectDB();
 
+  // -----------------------------------------
+  // HASH URL TOKEN
+  // -----------------------------------------
+
   const tokenHash =
     hashToken(token);
+
+  // -----------------------------------------
+  // FIND ACTIVE INVITATION
+  // -----------------------------------------
 
   const invitation =
     await ProjectInvitation.findOne({
@@ -41,6 +53,10 @@ export default async function InvitePage({
       )
       .lean();
 
+  // -----------------------------------------
+  // INVALID / UNKNOWN INVITATION
+  // -----------------------------------------
+
   if (!invitation) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4">
@@ -51,7 +67,7 @@ export default async function InvitePage({
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
             This invitation is invalid,
-            expired or has already been
+            expired, or has already been
             accepted.
           </p>
         </div>
@@ -59,12 +75,19 @@ export default async function InvitePage({
     );
   }
 
+  // -----------------------------------------
+  // CHECK EXPIRATION
+  // -----------------------------------------
+
   if (
+    !invitation.expiresAt ||
     new Date() >
-    invitation.expiresAt
+      new Date(invitation.expiresAt)
   ) {
     await ProjectInvitation.updateOne(
-      { _id: invitation._id },
+      {
+        _id: invitation._id,
+      },
       {
         $set: {
           active: false,
@@ -95,6 +118,9 @@ export default async function InvitePage({
       invitation={JSON.parse(
         JSON.stringify(invitation)
       )}
+      currentUserEmail={
+        session.user.email || ""
+      }
     />
   );
 }

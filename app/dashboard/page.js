@@ -132,9 +132,13 @@ export default async function DashboardPage() {
 /* ================================================== */
 
 function ProjectCard({ project, userId }) {
-  const currentMember = project.members.find(
+  const currentMember =
+  project.members.find(
     (member) =>
-      member.user?._id?.toString() === userId
+      String(
+        member.user?._id ||
+          member.user
+      ) === String(userId)
   );
 
   const admins = project.members.filter(

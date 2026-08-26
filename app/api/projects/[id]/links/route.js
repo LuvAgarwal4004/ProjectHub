@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import connectDb from "@/db/connectDb";
+import connectDB from "@/db/connectDb";
 import Project from "@/models/Project";
 import ProjectLink from "@/models/ProjectLink";
 
 import { authOptions } from "@/lib/authOptions";
 
-export async function GET(req, { params }) {
+export async function GET(
+  req,
+  { params }
+) {
   try {
     const { id } = await params;
 
@@ -21,7 +24,7 @@ export async function GET(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const project =
       await Project.findById(id);
@@ -33,11 +36,12 @@ export async function GET(req, { params }) {
       );
     }
 
-    const member = project.members.find(
-      (m) =>
-        String(m.user) ===
-        String(session.user.id)
-    );
+    const member =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
 
     if (!member) {
       return NextResponse.json(
@@ -54,7 +58,9 @@ export async function GET(req, { params }) {
           "addedBy",
           "name email image"
         )
-        .sort({ createdAt: -1 })
+        .sort({
+          createdAt: -1,
+        })
         .lean();
 
     return NextResponse.json({
@@ -62,14 +68,25 @@ export async function GET(req, { params }) {
       links,
     });
   } catch (error) {
+    console.error(
+      "GET LINKS ERROR:",
+      error
+    );
+
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to fetch links",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req, { params }) {
+export async function POST(
+  req,
+  { params }
+) {
   try {
     const { id } = await params;
 
@@ -83,7 +100,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const project =
       await Project.findById(id);
@@ -95,35 +112,49 @@ export async function POST(req, { params }) {
       );
     }
 
-    const member = project.members.find(
-      (m) =>
-        String(m.user) ===
-        String(session.user.id)
-    );
+    const member =
+      project.members.find(
+        (m) =>
+          String(m.user) ===
+          String(session.user.id)
+      );
 
     if (
       !member ||
-      !["admin", "editor"].includes(member.role)
+      !["admin", "editor"].includes(
+        member.role
+      )
     ) {
       return NextResponse.json(
-        { error: "You cannot add links" },
+        {
+          error:
+            "You cannot add links",
+        },
         { status: 403 }
       );
     }
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
-    if (
-      !body.title?.trim() ||
-      !body.url?.trim()
-    ) {
+    const title =
+      body.title?.trim();
+
+    const description =
+      body.description?.trim() || "";
+
+    let url =
+      body.url?.trim();
+
+    if (!title || !url) {
       return NextResponse.json(
-        { error: "Title and URL are required" },
+        {
+          error:
+            "Title and URL are required",
+        },
         { status: 400 }
       );
     }
-
-    let url = body.url.trim();
 
     if (
       !url.startsWith("http://") &&
@@ -135,15 +166,17 @@ export async function POST(req, { params }) {
     const link =
       await ProjectLink.create({
         project: id,
-        title: body.title.trim(),
+        title,
         url,
-        description:
-          body.description?.trim() || "",
-        addedBy: session.user.id,
+        description,
+        addedBy:
+          session.user.id,
       });
 
     const populated =
-      await ProjectLink.findById(link._id)
+      await ProjectLink.findById(
+        link._id
+      )
         .populate(
           "addedBy",
           "name email image"
@@ -155,8 +188,16 @@ export async function POST(req, { params }) {
       link: populated,
     });
   } catch (error) {
+    console.error(
+      "CREATE LINK ERROR:",
+      error
+    );
+
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to create link",
+      },
       { status: 500 }
     );
   }

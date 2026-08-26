@@ -1,27 +1,46 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import connectDb from "@/db/connectDb";
+import connectDB from "@/db/connectDb";
 import Project from "@/models/Project";
 import ProjectTask from "@/models/ProjectTask";
 
 import { authOptions } from "@/lib/authOptions";
 
-async function getMembership(projectId, userId) {
-  const project = await Project.findById(projectId);
+async function getMembership(
+  projectId,
+  userId
+) {
+  const project =
+    await Project.findById(
+      projectId
+    );
 
-  if (!project) return null;
+  if (!project) {
+    return null;
+  }
 
-  const member = project.members.find(
-    (m) => String(m.user) === String(userId)
-  );
+  const member =
+    project.members.find(
+      (m) =>
+        String(m.user) ===
+        String(userId)
+    );
 
-  if (!member) return null;
+  if (!member) {
+    return null;
+  }
 
-  return { project, member };
+  return {
+    project,
+    member,
+  };
 }
 
-export async function GET(req, { params }) {
+export async function GET(
+  req,
+  { params }
+) {
   try {
     const { id } = await params;
 
@@ -35,10 +54,13 @@ export async function GET(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const membership =
-      await getMembership(id, session.user.id);
+      await getMembership(
+        id,
+        session.user.id
+      );
 
     if (!membership) {
       return NextResponse.json(
@@ -47,36 +69,48 @@ export async function GET(req, { params }) {
       );
     }
 
-    const tasks = await ProjectTask.find({
-      project: id,
-    })
-      .populate(
-        "assignees",
-        "name email image"
-      )
-      .populate(
-        "createdBy",
-        "name email image"
-      )
-      .sort({
-        priority: -1,
-        createdAt: -1,
+    const tasks =
+      await ProjectTask.find({
+        project: id,
       })
-      .lean();
+        .populate(
+          "assignees",
+          "name email image"
+        )
+        .populate(
+          "createdBy",
+          "name email image"
+        )
+        .sort({
+          priority: -1,
+          createdAt: -1,
+        })
+        .lean();
 
     return NextResponse.json({
       success: true,
       tasks,
     });
   } catch (error) {
+    console.error(
+      "GET TASKS ERROR:",
+      error
+    );
+
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to fetch tasks",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req, { params }) {
+export async function POST(
+  req,
+  { params }
+) {
   try {
     const { id } = await params;
 
@@ -90,10 +124,13 @@ export async function POST(req, { params }) {
       );
     }
 
-    await connectDb();
+    await connectDB();
 
     const membership =
-      await getMembership(id, session.user.id);
+      await getMembership(
+        id,
+        session.user.id
+      );
 
     if (!membership) {
       return NextResponse.json(
@@ -102,35 +139,89 @@ export async function POST(req, { params }) {
       );
     }
 
-    if (membership.member.role !== "admin") {
+    if (
+      membership.member.role !==
+      "admin"
+    ) {
       return NextResponse.json(
-        { error: "Only the admin can create tasks" },
+        {
+          error:
+            "Only the admin can create tasks",
+        },
         { status: 403 }
       );
     }
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
-    if (!body.title?.trim()) {
+    const title =
+      body.title?.trim();
+
+    if (!title) {
       return NextResponse.json(
-        { error: "Task title is required" },
+        {
+          error:
+            "Task title is required",
+        },
         { status: 400 }
       );
     }
 
-    const task = await ProjectTask.create({
-      project: id,
-      title: body.title.trim(),
-      assignees: body.assignees || [],
-      deadlineDate: body.deadlineDate || "",
-      deadlineTime: body.deadlineTime || "",
-      status: body.status || "todo",
-      priority: Boolean(body.priority),
-      createdBy: session.user.id,
-    });
+    // -----------------------------------------
+    // ONLY PROJECT MEMBERS CAN BE ASSIGNED
+    // -----------------------------------------
+
+    const projectMemberIds =
+      membership.project.members.map(
+        (member) =>
+          String(member.user)
+      );
+
+    const requestedAssignees =
+      Array.isArray(
+        body.assignees
+      )
+        ? body.assignees
+        : [];
+
+    const validAssignees =
+      requestedAssignees.filter(
+        (userId) =>
+          projectMemberIds.includes(
+            String(userId)
+          )
+      );
+
+    const task =
+      await ProjectTask.create({
+        project: id,
+
+        title,
+
+        assignees:
+          validAssignees,
+
+        deadlineDate:
+          body.deadlineDate || "",
+
+        deadlineTime:
+          body.deadlineTime || "",
+
+        status:
+          body.status || "todo",
+
+        priority:
+          Boolean(body.priority),
+
+        createdBy:
+          session.user.id,
+      });
 
     const populatedTask =
-      await ProjectTask.findById(task._id)
+      await ProjectTask.findById(
+        task._id
+      )
         .populate(
           "assignees",
           "name email image"
@@ -146,8 +237,16 @@ export async function POST(req, { params }) {
       task: populatedTask,
     });
   } catch (error) {
+    console.error(
+      "CREATE TASK ERROR:",
+      error
+    );
+
     return NextResponse.json(
-      { error: error.message },
+      {
+        error:
+          "Failed to create task",
+      },
       { status: 500 }
     );
   }
