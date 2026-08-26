@@ -298,7 +298,7 @@ export default function ProjectWorkspace({
               {currentMember.role}
             </div>
           )}
-          {isAdmin && (
+          {isAdmin && !isClosed && (
             <button
               onClick={async () => {
                 const confirmed =
