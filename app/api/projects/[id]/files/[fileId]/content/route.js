@@ -7,41 +7,86 @@ import ProjectFile from "@/models/ProjectFile";
 import ProjectFileVersion from "@/models/ProjectFileVersion";
 
 import { authOptions } from "@/lib/authOptions";
-import {
-  getProjectMember,
-} from "@/lib/projectAccess";
+import { getProjectMember } from "@/lib/projectAccess";
+
 const EDITABLE_EXTENSIONS = [
-  "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
-  "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
-  "php", "sql", "sh", "bash", "env",
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "css",
+  "scss",
+  "sass",
+  "less",
+  "html",
+  "htm",
+  "json",
+  "md",
+  "txt",
+  "xml",
+  "yml",
+  "yaml",
+  "py",
+  "java",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "php",
+  "sql",
+  "sh",
+  "bash",
+  "zsh",
+  "env",
+  "gitignore",
+  "vue",
+  "svelte",
+  "go",
+  "rs",
+  "rb",
+  "swift",
+  "kt",
 ];
 
-function isEditableFileName(name = "") {
-  const extension = name.split(".").pop()?.toLowerCase();
-  return EDITABLE_EXTENSIONS.includes(extension);
+function isEditableFile(file) {
+  if (file.editable === true) {
+    return true;
+  }
+
+  const name = file.name || "";
+
+  const extension = name
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+
+  return EDITABLE_EXTENSIONS.includes(
+    extension
+  );
 }
-export async function GET(
-  req,
-  { params }
-) {
+
+/*
+ * ============================================================
+ * GET FILE CONTENT
+ * ============================================================
+ */
+
+export async function GET(req, { params }) {
   try {
-    const {
-      id,
-      fileId,
-    } = await params;
+    const { id, fileId } = await params;
 
     const session =
-      await getServerSession(
-        authOptions
-      );
+      await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
         {
-          error:
-            "Unauthorized",
+          error: "Unauthorized",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
@@ -53,10 +98,11 @@ export async function GET(
     if (!project) {
       return NextResponse.json(
         {
-          error:
-            "Project not found",
+          error: "Project not found",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -69,10 +115,11 @@ export async function GET(
     if (!member) {
       return NextResponse.json(
         {
-          error:
-            "Access denied",
+          error: "Access denied",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
@@ -85,33 +132,43 @@ export async function GET(
     if (!file) {
       return NextResponse.json(
         {
-          error:
-            "File not found",
+          error: "File not found",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
-    if (!isEditableFileName(file.path || file.name)) {
+    if (!isEditableFile(file)) {
       return NextResponse.json(
         {
           error:
-            "This file type cannot be edited.",
+            "This file type cannot be edited inside ProjectHub.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    /*
+     * Download the current file from Cloudinary.
+     */
     const response =
-      await fetch(file.url);
+      await fetch(file.url, {
+        cache: "no-store",
+      });
 
     if (!response.ok) {
       return NextResponse.json(
         {
           error:
-            "Could not download file content.",
+            "Could not download file content from storage.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -121,40 +178,51 @@ export async function GET(
     return NextResponse.json({
       success: true,
       content,
+      file: {
+        ...file,
+        editable: true,
+      },
     });
   } catch (error) {
+    console.error(
+      "GET FILE CONTENT ERROR:",
+      error
+    );
+
     return NextResponse.json(
       {
         error:
-          error.message,
+          error.message ||
+          "Could not load file.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
-export async function PATCH(
-  req,
-  { params }
-) {
+/*
+ * ============================================================
+ * SAVE FILE
+ * ============================================================
+ */
+
+export async function PATCH(req, { params }) {
   try {
-    const {
-      id,
-      fileId,
-    } = await params;
+    const { id, fileId } = await params;
 
     const session =
-      await getServerSession(
-        authOptions
-      );
+      await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
         {
-          error:
-            "Unauthorized",
+          error: "Unauthorized",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
@@ -166,10 +234,11 @@ export async function PATCH(
     if (!project) {
       return NextResponse.json(
         {
-          error:
-            "Project not found",
+          error: "Project not found",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -190,23 +259,24 @@ export async function PATCH(
           error:
             "Only admins and editors can edit files.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
     /*
      * CLOSED PROJECT PROTECTION
      */
-    if (
-      project.status ===
-      "closed"
-    ) {
+    if (project.status === "closed") {
       return NextResponse.json(
         {
           error:
             "This project is closed. An admin must reopen it before files can be changed.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
@@ -219,20 +289,23 @@ export async function PATCH(
     if (!file) {
       return NextResponse.json(
         {
-          error:
-            "File not found",
+          error: "File not found",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
-    if (!isEditableFileName(file.path || file.name)) {
+    if (!isEditableFile(file)) {
       return NextResponse.json(
         {
           error:
-            "This file type cannot be edited.",
+            "This file type cannot be edited inside ProjectHub.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -240,28 +313,32 @@ export async function PATCH(
       await req.json();
 
     const content =
-      typeof body.content ===
-        "string"
+      typeof body.content === "string"
         ? body.content
         : null;
 
-    if (
-      content === null
-    ) {
+    if (content === null) {
       return NextResponse.json(
         {
           error:
             "File content is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     /*
-     * Get old content.
+     * ============================================================
+     * GET CURRENT CONTENT
+     * ============================================================
      */
+
     const oldResponse =
-      await fetch(file.url);
+      await fetch(file.url, {
+        cache: "no-store",
+      });
 
     const oldContent =
       oldResponse.ok
@@ -269,35 +346,31 @@ export async function PATCH(
         : "";
 
     /*
-     * Store old version.
+     * ============================================================
+     * SAVE OLD VERSION
+     * ============================================================
      */
-    await ProjectFileVersion.create(
-      {
-        file: file._id,
-        project: id,
-        version: file.version,
-        content: oldContent,
-        savedBy:
-          session.user.id,
-        note:
-          body.note?.trim() ||
-          "Previous version",
-      }
-    );
+
+    await ProjectFileVersion.create({
+      file: file._id,
+      project: id,
+      version: file.version,
+      content: oldContent,
+      savedBy: session.user.id,
+      note:
+        body.note?.trim() ||
+        "Previous version",
+    });
 
     /*
-     * Upload the new source back
-     * to Cloudinary.
-     *
-     * We use an authenticated server-side
-     * upload here.
+     * ============================================================
+     * UPLOAD NEW CONTENT TO CLOUDINARY
+     * ============================================================
      */
 
     const cloudinary =
       (
-        await import(
-          "@/lib/cloudinary"
-        )
+        await import("@/lib/cloudinary")
       ).default;
 
     const result =
@@ -310,21 +383,18 @@ export async function PATCH(
                   file.publicId,
                 resource_type:
                   "raw",
-                overwrite:
-                  true,
+                overwrite: true,
+                invalidate: true,
               },
               (
                 error,
                 result
               ) => {
-                if (error)
-                  reject(
-                    error
-                  );
-                else
-                  resolve(
-                    result
-                  );
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
               }
             );
 
@@ -337,6 +407,12 @@ export async function PATCH(
         }
       );
 
+    /*
+     * ============================================================
+     * UPDATE DATABASE
+     * ============================================================
+     */
+
     file.url =
       result.secure_url ||
       file.url;
@@ -346,6 +422,8 @@ export async function PATCH(
         content,
         "utf8"
       );
+
+    file.editable = true;
 
     file.version =
       (file.version || 1) + 1;
@@ -357,21 +435,14 @@ export async function PATCH(
       session.user.id;
 
     file.fixNote =
-      body.note?.trim() ||
-      "";
+      body.note?.trim() || "";
 
     /*
-     * Saving the file means
-     * the previously marked error
-     * has potentially been fixed.
+     * IMPORTANT:
      *
-     * We don't automatically erase
-     * the error. Instead we mark it
-     * as fixed by clearing it only
-     * when the editor explicitly
-     * saves.
+     * Saving a file counts as fixing its
+     * currently marked error.
      */
-
     if (file.hasError) {
       file.hasError = false;
       file.errorDescription = "";
@@ -389,6 +460,10 @@ export async function PATCH(
         .populate(
           "uploadedBy",
           "name email image"
+        )
+        .populate(
+          "errorMarkedBy",
+          "name email"
         )
         .populate(
           "lastFixedBy",
@@ -409,9 +484,12 @@ export async function PATCH(
     return NextResponse.json(
       {
         error:
-          error.message,
+          error.message ||
+          "Could not save file.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

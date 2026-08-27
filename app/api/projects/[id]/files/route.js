@@ -9,8 +9,71 @@ import { authOptions } from "@/lib/authOptions";
 import {
   getProjectMember,
 } from "@/lib/projectAccess";
+const EDITABLE_EXTENSIONS = [
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "css",
+  "scss",
+  "sass",
+  "less",
+  "html",
+  "htm",
+  "json",
+  "md",
+  "txt",
+  "xml",
+  "yml",
+  "yaml",
+  "py",
+  "java",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "php",
+  "sql",
+  "sh",
+  "bash",
+  "zsh",
+  "env",
+  "gitignore",
+  "vue",
+  "svelte",
+  "go",
+  "rs",
+  "rb",
+  "swift",
+  "kt",
+];
 
+function isEditableFileName(name = "") {
+  const cleanName =
+    name
+      .split("/")
+      .pop()
+      ?.toLowerCase() || "";
+
+  if (
+    cleanName === ".env" ||
+    cleanName === ".gitignore"
+  ) {
+    return true;
+  }
+
+  const extension =
+    cleanName
+      .split(".")
+      .pop();
+
+  return EDITABLE_EXTENSIONS.includes(
+    extension
+  );
+}
 export async function GET(req, { params }) {
+  
   try {
     const { id } = await params;
 
@@ -180,8 +243,11 @@ export async function POST(req, { params }) {
         extension:
           body.extension || "",
 
-        editable:
-          Boolean(body.editable),
+        editable: isEditableFileName(
+          body.name ||
+          body.originalName ||
+          ""
+        ),
 
         description:
           body.description?.trim() || "",

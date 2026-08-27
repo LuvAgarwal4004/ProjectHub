@@ -33,16 +33,16 @@ import CreateTaskModal from "./CreateTaskModal";
 import FileModal from "./FileModal";
 import LinkModal from "./LinkModal";
 import OtherInfoTab from "./OtherInfoTab";
-const EDITABLE_EXTENSIONS = [
-  "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
-  "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
-  "php", "sql", "sh", "bash", "env",
-];
+// const EDITABLE_EXTENSIONS = [
+//   "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
+//   "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
+//   "php", "sql", "sh", "bash", "env",
+// ];
 
-function isEditableFileName(name = "") {
-  const extension = name.split(".").pop()?.toLowerCase();
-  return EDITABLE_EXTENSIONS.includes(extension);
-}
+// function isEditableFileName(name = "") {
+//   const extension = name.split(".").pop()?.toLowerCase();
+//   return EDITABLE_EXTENSIONS.includes(extension);
+// }
 
 export default function ProjectWorkspace({
   project,
@@ -141,17 +141,99 @@ export default function ProjectWorkspace({
     );
   }
 
-  function openFile(file) {
+  const EDITABLE_EXTENSIONS = [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "css",
+    "scss",
+    "sass",
+    "less",
+    "html",
+    "htm",
+    "json",
+    "md",
+    "txt",
+    "xml",
+    "yml",
+    "yaml",
+    "py",
+    "java",
+    "c",
+    "cpp",
+    "h",
+    "hpp",
+    "cs",
+    "php",
+    "sql",
+    "sh",
+    "bash",
+    "zsh",
+    "env",
+    "gitignore",
+    "vue",
+    "svelte",
+    "go",
+    "rs",
+    "rb",
+    "swift",
+    "kt",
+  ];
+
+  function isEditableFile(file) {
+    if (file.editable === true) {
+      return true;
+    }
+
+    const name =
+      file.name || "";
+
+    const cleanName =
+      name
+        .split("/")
+        .pop()
+        ?.toLowerCase() || "";
+
     if (
-      file.editable &&
+      cleanName === ".env" ||
+      cleanName === ".gitignore"
+    ) {
+      return true;
+    }
+
+    const extension =
+      cleanName
+        .split(".")
+        .pop();
+
+    return EDITABLE_EXTENSIONS.includes(
+      extension
+    );
+  }
+
+  function openFile(file) {
+    const canEdit =
       ["admin", "editor"].includes(
         currentMember.role
-      )
+      );
+
+    if (
+      canEdit &&
+      isEditableFile(file)
     ) {
-      setEditorFile(file);
+      setEditorFile({
+        ...file,
+        editable: true,
+      });
+
       return;
     }
 
+    /*
+     * Viewer or non-text file:
+     * open normally.
+     */
     window.open(
       file.url,
       "_blank",
@@ -304,8 +386,8 @@ export default function ProjectWorkspace({
               if (el) el.scrollIntoView({ behavior: "smooth" });
             }}
             className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4 ${tab === "otherInfo"
-                ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
+              ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+              : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
               }`}
           >
             <Award size={16} />
@@ -317,8 +399,8 @@ export default function ProjectWorkspace({
               0 && (
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[11px] font-bold ${tab === "otherInfo"
-                      ? "bg-white text-blue-700"
-                      : "bg-blue-100 text-blue-700"
+                    ? "bg-white text-blue-700"
+                    : "bg-blue-100 text-blue-700"
                     }`}
                 >
                   {(project.judges?.length || 0) +
@@ -831,30 +913,43 @@ export default function ProjectWorkspace({
         />
       )}
       {editorFile && (
-        <FileEditorModal
-          project={project}
-          file={editorFile}
-          onClose={() =>
-            setEditorFile(null)
-          }
-          onUpdated={(updatedFile) => {
-            setFiles((prev) =>
-              prev.map((item) =>
-                String(item._id) ===
-                  String(updatedFile._id)
-                  ? updatedFile
-                  : item
-              )
-            );
+  <FileEditorModal
+    project={project}
+    file={editorFile}
+    onClose={() =>
+      setEditorFile(null)
+    }
+    onUpdated={(
+      updatedFile,
+      options = {}
+    ) => {
+      setFiles((prev) =>
+        prev.map((item) =>
+          String(item._id) ===
+            String(updatedFile._id)
+            ? updatedFile
+            : item
+        )
+      );
 
-            setEditorFile(null);
+      setEditorFile(
+        updatedFile
+      );
 
-            toast.success(
-              "File saved successfully"
-            );
-          }}
-        />
-      )}
+      if (!options.keepOpen) {
+        setEditorFile(null);
+
+        toast.success(
+          "File saved successfully"
+        );
+      } else {
+        toast.success(
+          "Error marked"
+        );
+      }
+    }}
+  />
+)}
 
       {errorFile && (
         <MarkErrorModal
@@ -1226,7 +1321,7 @@ function FilesTab({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Browse project files and folders.
+             Browse, edit, review and manage project files.
           </p>
         </div>
 
@@ -1253,6 +1348,8 @@ function FilesTab({
             onOpenFile={(file) =>
               onEdit(file)
             }
+            onMarkError={onMarkError}
+            canMarkErrors={canEditResources}
           />
         )}
       </div>

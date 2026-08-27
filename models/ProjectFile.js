@@ -9,12 +9,6 @@ const ProjectFileSchema = new mongoose.Schema(
       index: true,
     },
 
-    /*
-     * ============================================================
-     * FILE NAME
-     * ============================================================
-     */
-
     name: {
       type: String,
       required: true,
@@ -26,20 +20,6 @@ const ProjectFileSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
-    /*
-     * ============================================================
-     * FILE PATH
-     * ============================================================
-     *
-     * Examples:
-     *
-     * model.js
-     *
-     * lib/model.js
-     *
-     * src/components/Button.jsx
-     */
 
     path: {
       type: String,
@@ -55,8 +35,14 @@ const ProjectFileSchema = new mongoose.Schema(
     extension: {
       type: String,
       default: "",
+      trim: true,
+      lowercase: true,
     },
 
+    /*
+     * Whether the file can be opened
+     * inside ProjectHub's editor.
+     */
     editable: {
       type: Boolean,
       default: false,
@@ -155,6 +141,9 @@ const ProjectFileSchema = new mongoose.Schema(
       trim: true,
     },
 
+    /*
+     * Every successful save creates a new version.
+     */
     version: {
       type: Number,
       default: 1,
