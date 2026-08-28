@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import FileTree from "./FileTree";
 import FileEditorModal from "./FileEditorModal";
 import MarkErrorModal from "./MarkErrorModal";
-import ProjectAI from "./ProjectAI";
+import ProjectAI from "@/app/project/[id]/ProjectAI";
 
 import {
   ArrowLeft,
