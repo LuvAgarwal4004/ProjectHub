@@ -90,12 +90,23 @@ export default async function DashboardPage() {
             </h2>
           </div>
 
-          <p className="shrink-0 text-sm text-slate-500">
-            {projects.length}{" "}
-            {projects.length === 1
-              ? "project"
-              : "projects"}
-          </p>
+          <div className="flex items-center gap-4">
+
+            <p className="shrink-0 text-sm text-slate-500">
+              {projects.length}{" "}
+              {projects.length === 1
+                ? "project"
+                : "projects"}
+            </p>
+
+            <Link
+              href="/dashboard/create"
+              className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:bg-blue-700 hover:-translate-y-0.5"
+            >
+              + New Project
+            </Link>
+
+          </div>
 
         </div>
 
