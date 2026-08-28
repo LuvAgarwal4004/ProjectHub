@@ -52,7 +52,17 @@ export default function ProjectSettings({
 
     const [invitationLink, setInvitationLink] =
         useState("");
+    const [deployedUrl, setDeployedUrl] =
+        useState(project.deployedUrl || "");
 
+    const [event, setEvent] =
+        useState(project.event || "");
+
+    const [institution, setInstitution] =
+        useState(project.institution || "");
+
+    const [prizeMoney, setPrizeMoney] =
+        useState(project.prizeMoney || "");
     async function generateInvitation() {
         setInviteLoading(true);
 
@@ -142,6 +152,10 @@ export default function ProjectSettings({
                     body: JSON.stringify({
                         name,
                         description,
+                        deployedUrl,
+                        event,
+                        institution,
+                        prizeMoney,
                     }),
                 }
             );
@@ -534,7 +548,70 @@ export default function ProjectSettings({
                                 placeholder="Project description"
                             />
                         </div>
+                        <div className="grid gap-5 sm:grid-cols-2">
 
+                            <div className="sm:col-span-2">
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Deployed URL
+                                </label>
+
+                                <input
+                                    type="url"
+                                    value={deployedUrl}
+                                    onChange={(e) =>
+                                        setDeployedUrl(e.target.value)
+                                    }
+                                    placeholder="https://your-project.vercel.app"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Event
+                                </label>
+
+                                <input
+                                    value={event}
+                                    onChange={(e) =>
+                                        setEvent(e.target.value)
+                                    }
+                                    placeholder="Event / Hackathon"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Institution
+                                </label>
+
+                                <input
+                                    value={institution}
+                                    onChange={(e) =>
+                                        setInstitution(e.target.value)
+                                    }
+                                    placeholder="College / Institution"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Prize Money
+                                </label>
+
+                                <input
+                                    value={prizeMoney}
+                                    onChange={(e) =>
+                                        setPrizeMoney(e.target.value)
+                                    }
+                                    placeholder="e.g. ₹50,000"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                />
+                            </div>
+
+                        </div>
 
                         <div className="flex justify-end">
 

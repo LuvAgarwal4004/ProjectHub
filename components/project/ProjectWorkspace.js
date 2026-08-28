@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import FileTree from "./FileTree";
 import FileEditorModal from "./FileEditorModal";
 import MarkErrorModal from "./MarkErrorModal";
+import ProjectAI from "./ProjectAI";
 
 import {
   ArrowLeft,
@@ -505,7 +506,47 @@ export default function ProjectWorkspace({
                 {project.description ||
                   "No project description has been added yet."}
               </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
+                {project.event && (
+                  <Info
+                    label="Event"
+                    value={project.event}
+                  />
+                )}
+
+                {project.institution && (
+                  <Info
+                    label="Institution"
+                    value={project.institution}
+                  />
+                )}
+
+                {project.prizeMoney && (
+                  <Info
+                    label="Prize Money"
+                    value={project.prizeMoney}
+                  />
+                )}
+
+                {project.deployedUrl && (
+                  <div className="rounded-2xl bg-emerald-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
+                      Deployment
+                    </p>
+
+                    <a
+                      href={project.deployedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 break-all font-semibold text-emerald-700 hover:underline"
+                    >
+                      Open live project →
+                    </a>
+                  </div>
+                )}
+
+              </div>
               <p className="mt-5 text-sm text-slate-500">
                 Admin:{" "}
                 <span className="font-semibold text-slate-800">
@@ -913,43 +954,44 @@ export default function ProjectWorkspace({
         />
       )}
       {editorFile && (
-  <FileEditorModal
-    project={project}
-    file={editorFile}
-    onClose={() =>
-      setEditorFile(null)
-    }
-    onUpdated={(
-      updatedFile,
-      options = {}
-    ) => {
-      setFiles((prev) =>
-        prev.map((item) =>
-          String(item._id) ===
-            String(updatedFile._id)
-            ? updatedFile
-            : item
-        )
-      );
+        <FileEditorModal
+          key={editorFile._id}
+          project={project}
+          file={editorFile}
+          onClose={() =>
+            setEditorFile(null)
+          }
+          onUpdated={(
+            updatedFile,
+            options = {}
+          ) => {
+            setFiles((prev) =>
+              prev.map((item) =>
+                String(item._id) ===
+                  String(updatedFile._id)
+                  ? updatedFile
+                  : item
+              )
+            );
 
-      setEditorFile(
-        updatedFile
-      );
+            setEditorFile(
+              updatedFile
+            );
 
-      if (!options.keepOpen) {
-        setEditorFile(null);
+            if (!options.keepOpen) {
+              setEditorFile(null);
 
-        toast.success(
-          "File saved successfully"
-        );
-      } else {
-        toast.success(
-          "Error marked"
-        );
-      }
-    }}
-  />
-)}
+              toast.success(
+                "File saved successfully"
+              );
+            } else {
+              toast.success(
+                "Error marked"
+              );
+            }
+          }}
+        />
+      )}
 
       {errorFile && (
         <MarkErrorModal
@@ -974,6 +1016,9 @@ export default function ProjectWorkspace({
           }}
         />
       )}
+      <ProjectAI
+        projectId={project._id.toString()}
+      />
     </main>
   );
 }
@@ -1321,7 +1366,7 @@ function FilesTab({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-             Browse, edit, review and manage project files.
+            Browse, edit, review and manage project files.
           </p>
         </div>
 
@@ -1381,14 +1426,18 @@ function FilesTab({
                           file.name}
                       </p>
 
-                      {file.errorLine && (
-                        <p className="text-xs font-semibold text-red-500">
-                          Line{" "}
-                          {
-                            file.errorLine
-                          }
-                        </p>
-                      )}
+                      {(file.errorStartLine ||
+                        file.errorEndLine) && (
+                          <p className="text-xs font-semibold text-red-500">
+                            Lines{" "}
+                            {file.errorStartLine || "?"}
+                            {file.errorEndLine &&
+                              file.errorEndLine !==
+                              file.errorStartLine
+                              ? ` – ${file.errorEndLine}`
+                              : ""}
+                          </p>
+                        )}
 
                       <p className="mt-1 text-xs text-slate-500">
                         {

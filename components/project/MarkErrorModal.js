@@ -18,10 +18,17 @@ export default function MarkErrorModal({
       file.errorDescription || ""
     );
 
-  const [line, setLine] =
+  const [startLine, setStartLine] =
     useState(
-      file.errorLine
-        ? String(file.errorLine)
+      file.errorStartLine
+        ? String(file.errorStartLine)
+        : ""
+    );
+
+  const [endLine, setEndLine] =
+    useState(
+      file.errorEndLine
+        ? String(file.errorEndLine)
         : ""
     );
 
@@ -32,6 +39,17 @@ export default function MarkErrorModal({
     e.preventDefault();
 
     if (!description.trim()) {
+      return;
+    }
+
+    if (
+      startLine &&
+      endLine &&
+      Number(endLine) < Number(startLine)
+    ) {
+      alert(
+        "End line cannot be before start line."
+      );
       return;
     }
 
@@ -49,7 +67,14 @@ export default function MarkErrorModal({
             },
             body: JSON.stringify({
               description,
-              line,
+              startLine:
+                startLine
+                  ? Number(startLine)
+                  : null,
+              endLine:
+                endLine
+                  ? Number(endLine)
+                  : null,
             }),
           }
         );
@@ -64,15 +89,10 @@ export default function MarkErrorModal({
         );
       }
 
-      onUpdated(
-        data.file
-      );
-
+      onUpdated(data.file);
       onClose();
     } catch (error) {
-      alert(
-        error.message
-      );
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -81,6 +101,7 @@ export default function MarkErrorModal({
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -90,13 +111,12 @@ export default function MarkErrorModal({
               />
 
               <h2 className="font-bold text-slate-900">
-                Mark File as Error
+                Mark Code Section as Error
               </h2>
             </div>
 
             <p className="mt-2 text-sm text-slate-500">
-              {file.path ||
-                file.name}
+              {file.path || file.name}
             </p>
           </div>
 
@@ -120,37 +140,54 @@ export default function MarkErrorModal({
             <textarea
               value={description}
               onChange={(e) =>
-                setDescription(
-                  e.target.value
-                )
+                setDescription(e.target.value)
               }
               rows={4}
-              placeholder="Explain what is wrong with this file..."
+              placeholder="Explain what is wrong with this section..."
               className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Line number
-              <span className="ml-1 font-normal text-slate-400">
-                (optional)
-              </span>
-            </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Start line
+              </label>
 
-            <input
-              type="number"
-              min="1"
-              value={line}
-              onChange={(e) =>
-                setLine(
-                  e.target.value
-                )
-              }
-              placeholder="42"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-            />
+              <input
+                type="number"
+                min="1"
+                value={startLine}
+                onChange={(e) =>
+                  setStartLine(e.target.value)
+                }
+                placeholder="e.g. 10"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                End line
+              </label>
+
+              <input
+                type="number"
+                min="1"
+                value={endLine}
+                onChange={(e) =>
+                  setEndLine(e.target.value)
+                }
+                placeholder="e.g. 15"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
           </div>
+
+          <p className="text-xs text-slate-400">
+            Leave both line fields empty if the
+            error applies to the entire file.
+          </p>
 
           <button
             type="submit"
@@ -162,7 +199,7 @@ export default function MarkErrorModal({
           >
             {loading
               ? "Marking..."
-              : "Mark as Error"}
+              : "Mark Section as Error"}
           </button>
         </form>
       </div>

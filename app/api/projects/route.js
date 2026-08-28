@@ -70,6 +70,23 @@ export async function POST(req) {
     const name = String(body.name || "").trim();
     const description = String(body.description || "").trim();
 
+    // OPTIONAL PROJECT INFORMATION
+    const deployedUrl = String(
+      body.deployedUrl || ""
+    ).trim();
+
+    const event = String(
+      body.event || ""
+    ).trim();
+
+    const institution = String(
+      body.institution || ""
+    ).trim();
+
+    const prizeMoney = String(
+      body.prizeMoney || ""
+    ).trim();
+
     if (!name) {
       return Response.json(
         {
@@ -103,9 +120,58 @@ export async function POST(req) {
       );
     }
 
+    if (deployedUrl.length > 500) {
+      return Response.json(
+        {
+          error: "Deployed URL is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (event.length > 200) {
+      return Response.json(
+        {
+          error: "Event name is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (institution.length > 200) {
+      return Response.json(
+        {
+          error: "Institution name is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (prizeMoney.length > 100) {
+      return Response.json(
+        {
+          error: "Prize money value is too long",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     const project = await Project.create({
       name,
       description,
+
+      deployedUrl,
+      event,
+      institution,
+      prizeMoney,
 
       createdBy: session.user.id,
 

@@ -102,7 +102,12 @@ const ProjectFileSchema = new mongoose.Schema(
       trim: true,
     },
 
-    errorLine: {
+    errorStartLine: {
+      type: Number,
+      default: null, 
+    },
+
+    errorEndLine: {
       type: Number,
       default: null,
     },

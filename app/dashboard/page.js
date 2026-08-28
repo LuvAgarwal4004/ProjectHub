@@ -210,29 +210,88 @@ function ProjectCard({ project, userId }) {
           {project.description ||
             "No description added yet."}
         </p>
+        {/* PROJECT METADATA */}
 
+        {(
+          project.event ||
+          project.institution ||
+          project.prizeMoney ||
+          project.deployedUrl
+        ) && (
+            <div className="mt-5 grid grid-cols-2 gap-2">
+
+              {project.event && (
+                <div className="rounded-xl bg-blue-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                    Event
+                  </p>
+
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+                    {project.event}
+                  </p>
+                </div>
+              )}
+
+              {project.institution && (
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Institution
+                  </p>
+
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+                    {project.institution}
+                  </p>
+                </div>
+              )}
+
+              {project.prizeMoney && (
+                <div className="rounded-xl bg-amber-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                    Prize
+                  </p>
+
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+                    {project.prizeMoney}
+                  </p>
+                </div>
+              )}
+
+              {project.deployedUrl && (
+                <div className="rounded-xl bg-emerald-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                    Deployed
+                  </p>
+
+                  <span className="mt-1 block truncate text-xs font-semibold text-emerald-700">
+                    Live →
+                  </span>
+                </div>
+              )}
+
+            </div>
+          )}
         {/* OTHER INFO HIGHLIGHTS */}
         {(Number(project.moneyStatus?.prizeMoney || 0) > 0 ||
           (project.certificates?.length || 0) > 0 ||
           (project.judges?.length || 0) > 0) && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {Number(project.moneyStatus?.prizeMoney || 0) > 0 && (
-              <span className="inline-flex items-center rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/50">
-                💰 {project.moneyStatus?.currency || "$"}{Number(project.moneyStatus.prizeMoney).toLocaleString()}
-              </span>
-            )}
-            {(project.certificates?.length || 0) > 0 && (
-              <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/50">
-                📜 {project.certificates.length} Cert{project.certificates.length === 1 ? "" : "s"}
-              </span>
-            )}
-            {(project.judges?.length || 0) > 0 && (
-              <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/50">
-                👨‍⚖️ {project.judges.length} Judge{project.judges.length === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
-        )}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {Number(project.moneyStatus?.prizeMoney || 0) > 0 && (
+                <span className="inline-flex items-center rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/50">
+                  💰 {project.moneyStatus?.currency || "$"}{Number(project.moneyStatus.prizeMoney).toLocaleString()}
+                </span>
+              )}
+              {(project.certificates?.length || 0) > 0 && (
+                <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/50">
+                  📜 {project.certificates.length} Cert{project.certificates.length === 1 ? "" : "s"}
+                </span>
+              )}
+              {(project.judges?.length || 0) > 0 && (
+                <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/50">
+                  👨‍⚖️ {project.judges.length} Judge{project.judges.length === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+          )}
 
 
         {/* DETAILS */}
@@ -272,7 +331,13 @@ function ProjectCard({ project, userId }) {
           </div>
 
         </div>
-
+        {project.deployedUrl && (
+          <div className="mt-4">
+            <span className="inline-flex items-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+              🚀 Live deployment available
+            </span>
+          </div>
+        )}
 
         {/* OPEN */}
 

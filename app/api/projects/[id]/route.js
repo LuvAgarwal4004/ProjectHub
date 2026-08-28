@@ -50,9 +50,28 @@ export async function PATCH(req, { params }) {
 
     const body = await req.json();
 
-    const name = String(body.name || "").trim();
+    const name = String(
+      body.name || ""
+    ).trim();
+
     const description = String(
       body.description || ""
+    ).trim();
+
+    const deployedUrl = String(
+      body.deployedUrl || ""
+    ).trim();
+
+    const event = String(
+      body.event || ""
+    ).trim();
+
+    const institution = String(
+      body.institution || ""
+    ).trim();
+
+    const prizeMoney = String(
+      body.prizeMoney || ""
     ).trim();
 
     if (!name) {
@@ -82,8 +101,53 @@ export async function PATCH(req, { params }) {
       );
     }
 
+    if (deployedUrl.length > 500) {
+      return NextResponse.json(
+        {
+          error: "Deployed URL is too long",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (event.length > 200) {
+      return NextResponse.json(
+        {
+          error: "Event name is too long",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (institution.length > 200) {
+      return NextResponse.json(
+        {
+          error: "Institution name is too long",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (prizeMoney.length > 100) {
+      return NextResponse.json(
+        {
+          error: "Prize money value is too long",
+        },
+        { status: 400 }
+      );
+    }
+
+    // =========================
+    // UPDATE PROJECT
+    // =========================
+
     project.name = name;
     project.description = description;
+
+    project.deployedUrl = deployedUrl;
+    project.event = event;
+    project.institution = institution;
+    project.prizeMoney = prizeMoney;
 
     await project.save();
 
@@ -93,6 +157,11 @@ export async function PATCH(req, { params }) {
         id: project._id.toString(),
         name: project.name,
         description: project.description,
+
+        deployedUrl: project.deployedUrl,
+        event: project.event,
+        institution: project.institution,
+        prizeMoney: project.prizeMoney,
       },
     });
   } catch (error) {

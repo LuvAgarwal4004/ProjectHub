@@ -446,7 +446,8 @@ export async function PATCH(req, { params }) {
     if (file.hasError) {
       file.hasError = false;
       file.errorDescription = "";
-      file.errorLine = null;
+      file.errorStartLine = null;
+      file.errorEndLine = null;
       file.errorMarkedBy = null;
       file.errorMarkedAt = null;
     }

@@ -203,7 +203,29 @@ const ProjectSchema = new Schema(
       default: "",
       trim: true,
     },
+    deployedUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
+    event: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    institution: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    prizeMoney: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     /*
      * ============================================================
      * PROJECT STATUS

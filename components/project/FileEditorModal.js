@@ -7,7 +7,12 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export default function FileEditorModal({
   project,
@@ -35,10 +40,17 @@ export default function FileEditorModal({
       file.errorDescription || ""
     );
 
-  const [errorLine, setErrorLine] =
+  const [errorStartLine, setErrorStartLine] =
     useState(
-      file.errorLine
-        ? String(file.errorLine)
+      file.errorStartLine
+        ? String(file.errorStartLine)
+        : ""
+    );
+
+  const [errorEndLine, setErrorEndLine] =
+    useState(
+      file.errorEndLine
+        ? String(file.errorEndLine)
         : ""
     );
 
@@ -46,9 +58,16 @@ export default function FileEditorModal({
     useState("");
 
   const [hasError, setHasError] =
-    useState(
-      Boolean(file.hasError)
-    );
+    useState(Boolean(file.hasError));
+
+  const textareaRef =
+    useRef(null);
+
+  const lineNumbersRef =
+    useRef(null);
+
+  const highlightRef =
+    useRef(null);
 
   useEffect(() => {
     loadFile();
@@ -81,19 +100,69 @@ export default function FileEditorModal({
         data.content || ""
       );
     } catch (err) {
-      setError(
-        err.message
-      );
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  /*
-   * ============================================================
-   * MARK ERROR
-   * ============================================================
-   */
+  const lines = useMemo(
+    () => content.split("\n"),
+    [content]
+  );
+
+  function isErrorLine(lineNumber) {
+    if (!hasError) {
+      return false;
+    }
+
+    const start =
+      Number(errorStartLine);
+
+    const end =
+      Number(errorEndLine);
+
+    if (!start) {
+      return false;
+    }
+
+    if (!end) {
+      return lineNumber === start;
+    }
+
+    return (
+      lineNumber >= start &&
+      lineNumber <= end
+    );
+  }
+
+  function syncScroll() {
+    const textarea =
+      textareaRef.current;
+
+    if (!textarea) {
+      return;
+    }
+
+    const top =
+      textarea.scrollTop;
+
+    const left =
+      textarea.scrollLeft;
+
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop =
+        top;
+    }
+
+    if (highlightRef.current) {
+      highlightRef.current.scrollTop =
+        top;
+
+      highlightRef.current.scrollLeft =
+        left;
+    }
+  }
 
   async function markError() {
     if (
@@ -101,6 +170,49 @@ export default function FileEditorModal({
     ) {
       setError(
         "Please describe the error before marking it."
+      );
+      return;
+    }
+
+    const start =
+      errorStartLine
+        ? Number(errorStartLine)
+        : null;
+
+    const end =
+      errorEndLine
+        ? Number(errorEndLine)
+        : null;
+
+    if (
+      start !== null &&
+      (!Number.isInteger(start) ||
+        start < 1)
+    ) {
+      setError(
+        "Start line must be a positive number."
+      );
+      return;
+    }
+
+    if (
+      end !== null &&
+      (!Number.isInteger(end) ||
+        end < 1)
+    ) {
+      setError(
+        "End line must be a positive number."
+      );
+      return;
+    }
+
+    if (
+      start !== null &&
+      end !== null &&
+      end < start
+    ) {
+      setError(
+        "End line cannot be before start line."
       );
       return;
     }
@@ -121,7 +233,9 @@ export default function FileEditorModal({
             body: JSON.stringify({
               description:
                 errorDescription,
-              line: errorLine,
+
+              startLine: start,
+              endLine: end,
             }),
           }
         );
@@ -138,6 +252,22 @@ export default function FileEditorModal({
 
       setHasError(true);
 
+      setErrorStartLine(
+        data.file.errorStartLine
+          ? String(
+              data.file.errorStartLine
+            )
+          : ""
+      );
+
+      setErrorEndLine(
+        data.file.errorEndLine
+          ? String(
+              data.file.errorEndLine
+            )
+          : ""
+      );
+
       onUpdated(
         data.file,
         {
@@ -145,19 +275,11 @@ export default function FileEditorModal({
         }
       );
     } catch (err) {
-      setError(
-        err.message
-      );
+      setError(err.message);
     } finally {
       setMarkingError(false);
     }
   }
-
-  /*
-   * ============================================================
-   * SAVE / FIX FILE
-   * ============================================================
-   */
 
   async function saveFile() {
     try {
@@ -175,6 +297,7 @@ export default function FileEditorModal({
             },
             body: JSON.stringify({
               content,
+
               note:
                 fixNote ||
                 (hasError
@@ -195,16 +318,16 @@ export default function FileEditorModal({
       }
 
       setHasError(false);
-      setErrorDescription("");
-      setErrorLine("");
 
-      onUpdated(
-        data.file
-      );
+      setErrorDescription("");
+
+      setErrorStartLine("");
+
+      setErrorEndLine("");
+
+      onUpdated(data.file);
     } catch (err) {
-      setError(
-        err.message
-      );
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -214,9 +337,7 @@ export default function FileEditorModal({
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm">
       <div className="flex h-[95vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
 
-        {/* ================================================== */}
         {/* HEADER */}
-        {/* ================================================== */}
 
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-6">
           <div className="min-w-0">
@@ -236,8 +357,7 @@ export default function FileEditorModal({
             </div>
 
             <p className="truncate text-xs text-slate-400">
-              {file.path ||
-                file.name}
+              {file.path || file.name}
             </p>
           </div>
 
@@ -253,9 +373,7 @@ export default function FileEditorModal({
           </button>
         </div>
 
-        {/* ================================================== */}
         {/* CURRENT ERROR */}
-        {/* ================================================== */}
 
         {hasError && (
           <div className="border-b border-red-100 bg-red-50 px-4 py-3 sm:px-6">
@@ -270,9 +388,17 @@ export default function FileEditorModal({
                   Error marked on this file
                 </p>
 
-                {errorLine && (
+                {(errorStartLine ||
+                  errorEndLine) && (
                   <p className="mt-0.5 text-xs font-semibold text-red-600">
-                    Line {errorLine}
+                    Lines{" "}
+                    {errorStartLine ||
+                      "?"}
+                    {errorEndLine &&
+                    errorEndLine !==
+                      errorStartLine
+                      ? ` – ${errorEndLine}`
+                      : ""}
                   </p>
                 )}
 
@@ -284,37 +410,111 @@ export default function FileEditorModal({
           </div>
         )}
 
-        {/* ================================================== */}
         {/* EDITOR */}
-        {/* ================================================== */}
 
         <div className="min-h-0 flex-1 p-3 sm:p-5">
           {loading ? (
             <div className="flex h-full items-center justify-center text-sm text-slate-500">
               Loading file...
             </div>
-          ) : error &&
-            !content ? (
+          ) : error && !content ? (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-red-500">
               {error}
             </div>
           ) : (
-            <textarea
-              value={content}
-              onChange={(e) =>
-                setContent(
-                  e.target.value
-                )
-              }
-              spellCheck={false}
-              className="h-full w-full resize-none rounded-2xl border border-slate-200 bg-slate-950 p-4 font-mono text-sm leading-6 text-slate-100 outline-none focus:border-blue-500"
-            />
+            <div className="relative flex h-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
+
+              {/* LINE NUMBERS */}
+
+              <div
+                ref={lineNumbersRef}
+                className="z-20 w-14 shrink-0 overflow-hidden border-r border-slate-800 bg-slate-950 text-right font-mono text-sm leading-6 text-slate-500"
+              >
+                {lines.map(
+                  (_, index) => {
+                    const lineNumber =
+                      index + 1;
+
+                    return (
+                      <div
+                        key={lineNumber}
+                        className={`box-border h-6 px-3 ${
+                          isErrorLine(
+                            lineNumber
+                          )
+                            ? "bg-red-500/30 text-red-300"
+                            : ""
+                        }`}
+                      >
+                        {lineNumber}
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+
+              {/* CODE AREA */}
+
+              <div className="relative min-w-0 flex-1 overflow-hidden">
+
+                {/* RED HIGHLIGHT LAYER */}
+
+                <div
+                  ref={highlightRef}
+                  className="pointer-events-none absolute inset-0 z-0 overflow-hidden font-mono text-sm leading-6"
+                >
+                  {lines.map(
+                    (line, index) => {
+                      const lineNumber =
+                        index + 1;
+
+                      return (
+                        <div
+                          key={lineNumber}
+                          className={`h-6 whitespace-pre ${
+                            isErrorLine(
+                              lineNumber
+                            )
+                              ? "bg-red-500/20 text-red-300"
+                              : "text-transparent"
+                          }`}
+                        >
+                          {line || " "}
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+
+                {/* ACTUAL EDITOR */}
+
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) =>
+                    setContent(
+                      e.target.value
+                    )
+                  }
+                  onScroll={syncScroll}
+                  spellCheck={false}
+                  disabled={
+                    saving ||
+                    markingError
+                  }
+                  className="relative z-10 h-full w-full resize-none overflow-auto bg-transparent p-0 font-mono text-sm leading-6 text-slate-100 caret-white outline-none"
+                  style={{
+                    tabSize: 2,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                  }}
+                />
+              </div>
+            </div>
           )}
         </div>
 
-        {/* ================================================== */}
-        {/* ERROR / FIX CONTROLS */}
-        {/* ================================================== */}
+        {/* CONTROLS */}
 
         <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
 
@@ -324,9 +524,9 @@ export default function FileEditorModal({
             </p>
           )}
 
-          <div className="grid gap-3 lg:grid-cols-[1fr_140px_auto_auto]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_120px_120px_auto_auto]">
 
-            {/* ERROR DESCRIPTION */}
+            {/* DESCRIPTION */}
 
             <input
               value={errorDescription}
@@ -341,20 +541,20 @@ export default function FileEditorModal({
               }
               placeholder={
                 hasError
-                  ? "Update the error description..."
-                  : "Describe an error in this file..."
+                  ? "Update error description..."
+                  : "Describe an error..."
               }
               className="min-w-0 rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             />
 
-            {/* LINE */}
+            {/* START */}
 
             <input
               type="number"
               min="1"
-              value={errorLine}
+              value={errorStartLine}
               onChange={(e) =>
-                setErrorLine(
+                setErrorStartLine(
                   e.target.value
                 )
               }
@@ -362,11 +562,30 @@ export default function FileEditorModal({
                 saving ||
                 markingError
               }
-              placeholder="Line #"
+              placeholder="Start #"
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             />
 
-            {/* MARK ERROR */}
+            {/* END */}
+
+            <input
+              type="number"
+              min="1"
+              value={errorEndLine}
+              onChange={(e) =>
+                setErrorEndLine(
+                  e.target.value
+                )
+              }
+              disabled={
+                saving ||
+                markingError
+              }
+              placeholder="End #"
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            />
+
+            {/* MARK */}
 
             <button
               onClick={markError}
@@ -378,9 +597,7 @@ export default function FileEditorModal({
               }
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
             >
-              <AlertTriangle
-                size={16}
-              />
+              <AlertTriangle size={16} />
 
               {markingError
                 ? "Marking..."
@@ -389,7 +606,7 @@ export default function FileEditorModal({
                 : "Mark Error"}
             </button>
 
-            {/* SAVE / FIX */}
+            {/* SAVE */}
 
             <button
               onClick={saveFile}
@@ -404,9 +621,7 @@ export default function FileEditorModal({
                 "Saving..."
               ) : hasError ? (
                 <>
-                  <CheckCircle2
-                    size={16}
-                  />
+                  <CheckCircle2 size={16} />
                   Save & Fix
                 </>
               ) : (
@@ -418,15 +633,11 @@ export default function FileEditorModal({
             </button>
           </div>
 
-          {/* FIX NOTE */}
-
           <div className="mt-3">
             <input
               value={fixNote}
               onChange={(e) =>
-                setFixNote(
-                  e.target.value
-                )
+                setFixNote(e.target.value)
               }
               disabled={
                 saving ||
@@ -438,12 +649,8 @@ export default function FileEditorModal({
           </div>
 
           <p className="mt-2 text-xs text-slate-400">
-            Mark an error to flag the file for the team.
-            When the error is corrected, use{" "}
-            <span className="font-semibold">
-              Save & Fix
-            </span>
-            .
+            Every line is numbered. Enter a start and
+            end line to highlight an entire code section.
           </p>
         </div>
       </div>
