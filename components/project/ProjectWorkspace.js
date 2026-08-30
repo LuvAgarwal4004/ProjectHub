@@ -216,7 +216,8 @@ export default function ProjectWorkspace({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "closed" }),
               });
-              if (!res.ok) throw new Error("Could not close project");
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || "Could not close project");
               toast.success("Project fixed and closed");
               router.refresh();
             } catch (err) {
@@ -227,6 +228,33 @@ export default function ProjectWorkspace({
         >
           <CheckCircle2 size={14} className="text-[var(--color-accent-deep)] shrink-0" />
           <span className="hidden sm:inline font-bold">Fix & Close</span>
+        </Button>
+      )}
+
+      {isAdmin && isClosed && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            if (!window.confirm("Reopen this project? Members will be able to make changes again.")) return;
+            try {
+              const res = await fetch(`/api/projects/${project._id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "open" }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || "Could not reopen project");
+              toast.success("Project reopened");
+              router.refresh();
+            } catch (err) {
+              toast.error(err.message);
+            }
+          }}
+          className="gap-1.5"
+        >
+          <Clock3 size={14} className="shrink-0" />
+          <span className="hidden sm:inline font-bold">Reopen Project</span>
         </Button>
       )}
     </div>
