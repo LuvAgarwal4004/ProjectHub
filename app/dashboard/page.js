@@ -6,7 +6,11 @@ import { authOptions } from "@/lib/authOptions";
 import connectDb from "@/db/connectDb";
 import Project from "@/models/Project";
 
-import DashboardUserMenu from "@/components/DashboardUserMenu";
+import AppShell from "@/components/layout/AppShell";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { FolderKanban, ArrowRight, User, Users, Calendar } from "lucide-react";
 
 export default async function DashboardPage() {
   // 🔒 SERVER-SIDE AUTHENTICATION CHECK
@@ -26,386 +30,233 @@ export default async function DashboardPage() {
     .sort({ updatedAt: -1 })
     .lean();
 
+  const serializedProjects = JSON.parse(JSON.stringify(projects));
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
-
-      {/* ================================================== */}
-      {/* HEADER */}
-      {/* ================================================== */}
-
-      <section className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-
-          {/* TOP ROW */}
-          <div className="flex items-start justify-between gap-4">
-
-            {/* LEFT SIDE */}
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-blue-600">
-                ProjectHub
-              </p>
-
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                Welcome back, {session.user.name || "there"} 👋
-              </h1>
-
-              <p className="mt-2 hidden text-sm text-slate-500 sm:block">
-                Manage your projects and everything connected to them.
-              </p>
-            </div>
-
-            {/* USER PROFILE */}
-            <div className="shrink-0">
-              <DashboardUserMenu user={session.user} />
-            </div>
-
-          </div>
-
-          {/* MOBILE DESCRIPTION */}
-          <p className="mt-3 text-sm text-slate-500 sm:hidden">
-            Manage your projects and everything connected to them.
-          </p>
-
-        </div>
-      </section>
-
-
-      {/* ================================================== */}
-      {/* DASHBOARD CONTENT */}
-      {/* ================================================== */}
-
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-
-        {/* SECTION HEADER */}
-
-        <div className="mb-8 flex items-end justify-between gap-4">
-
+    <AppShell
+      projects={serializedProjects}
+      title="Dashboard"
+      topbarActions={
+        <Link href="/dashboard/create">
+          <Button size="sm" variant="primary" className="shadow-2xs">
+            + New Project
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-8">
+        {/* Welcome Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[16px] p-6 shadow-2xs">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 sm:text-sm">
-              Your workspace
+            <span className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-accent-deep)]">
+              Welcome Back
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-[var(--color-ink)] mt-1 tracking-tight">
+              Hello, {session.user.name || "there"}
+            </h1>
+            <p className="text-xs sm:text-sm font-body text-[var(--color-ink-muted)] mt-1">
+              Manage your projects, files, links, and team members in one place.
             </p>
-
-            <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-              Your Projects
-            </h2>
           </div>
 
-          <div className="flex items-center gap-4">
-
-            <p className="shrink-0 text-sm text-slate-500">
-              {projects.length}{" "}
-              {projects.length === 1
-                ? "project"
-                : "projects"}
-            </p>
-
-            <Link
-              href="/dashboard/create"
-              className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:bg-blue-700 hover:-translate-y-0.5"
-            >
-              + New Project
-            </Link>
-
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-[12px] px-4 py-2.5 text-center">
+              <p className="text-xl font-heading font-bold text-[var(--color-ink)]">
+                {serializedProjects.length}
+              </p>
+              <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                Projects
+              </p>
+            </div>
           </div>
-
         </div>
 
-
-        {/* ================================================== */}
-        {/* PROJECTS */}
-        {/* ================================================== */}
-
-        {projects.length === 0 ? (
-          <EmptyProjects />
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
-            {projects.map((project) => (
-              <ProjectCard
-                key={project._id.toString()}
-                project={project}
-                userId={session.user.id}
-              />
-            ))}
-
+        {/* Workspace Projects Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-heading font-bold text-[var(--color-ink)]">
+                Your Projects
+              </h2>
+              <p className="text-xs font-body text-[var(--color-ink-muted)]">
+                Select a project to access its workspace, files, and links.
+              </p>
+            </div>
           </div>
-        )}
 
-      </section>
-
-    </main>
+          {serializedProjects.length === 0 ? (
+            <EmptyProjects />
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {serializedProjects.map((project) => (
+                <ProjectCard
+                  key={project._id.toString()}
+                  project={project}
+                  userId={session.user.id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </AppShell>
   );
 }
 
-
-/* ================================================== */
-/* PROJECT CARD */
-/* ================================================== */
-
 function ProjectCard({ project, userId }) {
-  const currentMember =
-    project.members.find(
-      (member) =>
-        String(
-          member.user?._id ||
-          member.user
-        ) === String(userId)
-    );
-
-  const admins = project.members.filter(
-    (member) => member.role === "admin"
+  const currentMember = project.members?.find(
+    (member) =>
+      String(member.user?._id || member.user) === String(userId)
   );
 
-  const adminNames = admins
-    .map((member) => member.user?.name)
-    .filter(Boolean);
-
-  const adminName =
-    adminNames.length > 0
-      ? adminNames.join(", ")
-      : "Unknown";
-
-  const role =
-    currentMember?.role || "viewer";
+  const admins = project.members?.filter((member) => member.role === "admin") || [];
+  const adminNames = admins.map((member) => member.user?.name).filter(Boolean);
+  const adminName = adminNames.length > 0 ? adminNames.join(", ") : "Unknown";
+  const role = currentMember?.role || "viewer";
 
   return (
-    <Link
-      href={`/project/${project._id}`}
-      className="group block"
-    >
-      <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/50">
+    <Link href={`/project/${project._id}`} className="group block h-full focus:outline-none">
+      <Card
+        hoverable
+        className="h-full flex flex-col justify-between p-5 sm:p-6 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[16px] transition-all duration-200 group-hover:border-[var(--color-accent)] group-hover:shadow-md group-focus:border-[var(--color-accent)]"
+      >
+        <div className="space-y-4">
+          {/* Top Header: Folder Anchor & Status / Role Badges */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/30 flex items-center justify-center text-[var(--color-accent-deep)] shrink-0 shadow-2xs">
+              <FolderKanban size={20} />
+            </div>
 
-        {/* TOP */}
-
-        <div className="flex items-start justify-between gap-4">
-
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
-            📁
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <span
-              className={`
-        rounded-full px-3 py-1 text-xs font-semibold capitalize
-        ${role === "admin"
-                  ? "bg-blue-100 text-blue-700"
-                  : role === "editor"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-slate-100 text-slate-600"
-                }
-      `}
-            >
-              {role}
-            </span>
-
-            {project.status === "closed" && (
-              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                Fixed & Closed
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Secondary Role Badge */}
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-heading font-medium tracking-wider uppercase text-[var(--color-ink-muted)] bg-[var(--color-surface-muted)] border border-[var(--color-border)]">
+                {role}
               </span>
-            )}
+
+              {/* Status Badge as Clear Focal Point */}
+              {project.deployedUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-heading font-extrabold bg-[var(--color-accent)]/25 dark:bg-[var(--color-surface-muted)] text-[#14532D] dark:text-[#F7F7F4] border border-[#14532D]/30 dark:border-[var(--color-border)] shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#14532D] dark:bg-[var(--color-accent)] animate-pulse shrink-0" />
+                  Live
+                </span>
+              ) : project.status === "closed" ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-heading font-semibold bg-[var(--color-surface-muted)] text-[var(--color-ink-muted)] border border-[var(--color-border)] shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-soft)] shrink-0" />
+                  Closed
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-heading font-semibold bg-[var(--color-surface-muted)] text-[var(--color-ink-muted)] border border-[var(--color-border)] shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] dark:bg-[var(--color-accent)] shrink-0" />
+                  Active
+                </span>
+              )}
+            </div>
           </div>
 
+          {/* Project Title & Category / Metadata Chips */}
+          <div>
+            <h3 className="font-heading font-bold text-lg text-[var(--color-ink)] truncate group-hover:text-[var(--color-accent-deep)] transition">
+              {project.name}
+            </h3>
+
+            {/* Category / Metadata Chips */}
+            {(project.event || project.institution || project.prizeMoney) && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                {project.event && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-medium tracking-wider uppercase bg-[var(--color-surface-muted)] text-[var(--color-ink-muted)] border border-[var(--color-border)]">
+                    {project.event}
+                  </span>
+                )}
+                {project.institution && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-medium tracking-wider uppercase bg-[var(--color-surface-muted)] text-[var(--color-ink-muted)] border border-[var(--color-border)]">
+                    {project.institution}
+                  </span>
+                )}
+                {project.prizeMoney && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-medium tracking-wider uppercase bg-[var(--color-surface-muted)] text-[var(--color-ink-muted)] border border-[var(--color-border)]">
+                    Prize: {project.prizeMoney}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <p className="mt-2 font-body text-xs text-[var(--color-ink-muted)] line-clamp-2 min-h-[32px] leading-relaxed">
+              {project.description || "No description added yet."}
+            </p>
+          </div>
         </div>
 
-
-        {/* PROJECT NAME */}
-
-        <h3 className="mt-6 truncate text-xl font-bold text-slate-900 transition group-hover:text-blue-600">
-          {project.name}
-        </h3>
-
-
-        {/* DESCRIPTION */}
-
-        <p className="mt-2 line-clamp-2 min-h-[48px] text-sm leading-6 text-slate-500">
-          {project.description ||
-            "No description added yet."}
-        </p>
-        {/* PROJECT METADATA */}
-
-        {(
-          project.event ||
-          project.institution ||
-          project.prizeMoney ||
-          project.deployedUrl
-        ) && (
-            <div className="mt-5 grid grid-cols-2 gap-2">
-
-              {project.event && (
-                <div className="rounded-xl bg-blue-50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                    Event
-                  </p>
-
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
-                    {project.event}
-                  </p>
-                </div>
-              )}
-
-              {project.institution && (
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Institution
-                  </p>
-
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
-                    {project.institution}
-                  </p>
-                </div>
-              )}
-
-              {project.prizeMoney && (
-                <div className="rounded-xl bg-amber-50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
-                    Prize
-                  </p>
-
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-700">
-                    {project.prizeMoney}
-                  </p>
-                </div>
-              )}
-
-              {project.deployedUrl && (
-                <div className="rounded-xl bg-emerald-50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-                    Deployed
-                  </p>
-
-                  <span className="mt-1 block truncate text-xs font-semibold text-emerald-700">
-                    Live →
-                  </span>
-                </div>
-              )}
-
+        {/* Divider, Meta Rows with Leading Icons & Footer CTA */}
+        <div className="pt-4 mt-4 border-t border-[var(--color-border)] space-y-2.5">
+          {/* Admin Meta Row */}
+          <div className="flex items-center justify-between text-xs font-body">
+            <div className="flex items-center gap-2 text-[var(--color-ink-muted)]">
+              <User size={14} className="shrink-0 text-[var(--color-ink-soft)]" />
+              <span>Admin</span>
             </div>
-          )}
-        {/* OTHER INFO HIGHLIGHTS */}
-        {(Number(project.moneyStatus?.prizeMoney || 0) > 0 ||
-          (project.certificates?.length || 0) > 0 ||
-          (project.judges?.length || 0) > 0) && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {Number(project.moneyStatus?.prizeMoney || 0) > 0 && (
-                <span className="inline-flex items-center rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/50">
-                  💰 {project.moneyStatus?.currency || "$"}{Number(project.moneyStatus.prizeMoney).toLocaleString()}
-                </span>
-              )}
-              {(project.certificates?.length || 0) > 0 && (
-                <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/50">
-                  📜 {project.certificates.length} Cert{project.certificates.length === 1 ? "" : "s"}
-                </span>
-              )}
-              {(project.judges?.length || 0) > 0 && (
-                <span className="inline-flex items-center rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/50">
-                  👨‍⚖️ {project.judges.length} Judge{project.judges.length === 1 ? "" : "s"}
-                </span>
-              )}
-            </div>
-          )}
-
-
-        {/* DETAILS */}
-
-        <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">
-              Admin
-            </span>
-
-            <span className="max-w-[180px] truncate font-medium text-slate-700">
+            <span className="font-heading font-medium text-[var(--color-ink)] truncate max-w-[140px]">
               {adminName}
             </span>
           </div>
 
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">
-              Team members
-            </span>
-
-            <span className="font-semibold text-slate-700">
-              {project.members.length}
+          {/* Members Meta Row */}
+          <div className="flex items-center justify-between text-xs font-body">
+            <div className="flex items-center gap-2 text-[var(--color-ink-muted)]">
+              <Users size={14} className="shrink-0 text-[var(--color-ink-soft)]" />
+              <span>Members</span>
+            </div>
+            <span className="font-heading font-semibold text-[var(--color-ink)]">
+              {project.members?.length || 0}
             </span>
           </div>
 
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">
-              Created
-            </span>
-
-            <span className="font-medium text-slate-700">
+          {/* Created Meta Row */}
+          <div className="flex items-center justify-between text-xs font-body">
+            <div className="flex items-center gap-2 text-[var(--color-ink-muted)]">
+              <Calendar size={14} className="shrink-0 text-[var(--color-ink-soft)]" />
+              <span>Created</span>
+            </div>
+            <span className="font-body text-[var(--color-ink)]">
               {formatDate(project.createdAt)}
             </span>
           </div>
 
-        </div>
-        {project.deployedUrl && (
-          <div className="mt-4">
-            <span className="inline-flex items-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
-              🚀 Live deployment available
-            </span>
+          {/* Tightened Footer CTA */}
+          <div className="pt-3 border-t border-[var(--color-border)] flex items-center justify-between">
+            <div className="inline-flex items-center gap-1.5 text-xs font-heading font-bold text-[var(--color-accent-deep)] group-hover:text-[var(--color-accent-hover)] transition">
+              <span>Open project</span>
+              <ArrowRight size={14} className="transition-transform group-hover:translate-x-1 shrink-0" />
+            </div>
           </div>
-        )}
-
-        {/* OPEN */}
-
-        <div className="mt-6 flex items-center justify-between text-sm font-semibold text-blue-600">
-          <span>Open project</span>
-
-          <span className="transition-transform group-hover:translate-x-1">
-            →
-          </span>
         </div>
-
-      </div>
+      </Card>
     </Link>
   );
 }
 
-
-/* ================================================== */
-/* EMPTY STATE */
-/* ================================================== */
-
 function EmptyProjects() {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center sm:py-20">
-
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-50 text-4xl">
-        📁
+    <Card className="py-16 text-center border-dashed">
+      <div className="mx-auto w-16 h-16 rounded-2xl bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/30 flex items-center justify-center text-[var(--color-accent-deep)]">
+        <FolderKanban size={32} />
       </div>
-
-      <h3 className="mt-6 text-2xl font-bold text-slate-900">
+      <h3 className="mt-4 font-heading font-bold text-xl text-[var(--color-ink)]">
         No projects yet
       </h3>
-
-      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
-        Create your first ProjectHub workspace and keep your
-        files, links, information and team members together.
+      <p className="mx-auto mt-2 max-w-sm font-body text-xs text-[var(--color-ink-muted)] leading-relaxed">
+        Create your first DEVHOUSE workspace to start storing files, links, and organizing team members.
       </p>
-
-      <Link
-        href="/dashboard/create"
-        className="mt-7 inline-flex rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700"
-      >
-        Create Your First Project →
+      <Link href="/dashboard/create" className="mt-6 inline-block">
+        <Button variant="primary" size="md">
+          + Create Your First Project
+        </Button>
       </Link>
-
-    </div>
+    </Card>
   );
 }
 
-
-/* ================================================== */
-/* DATE */
-/* ================================================== */
-
 function formatDate(date) {
   if (!date) return "Unknown";
-
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/Button";
+import { ShieldCheck } from "lucide-react";
 
 export default function CreateProjectForm() {
   const router = useRouter();
@@ -11,17 +13,10 @@ export default function CreateProjectForm() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const [deployedUrl, setDeployedUrl] =
-    useState("");
-
-  const [event, setEvent] =
-    useState("");
-
-  const [institution, setInstitution] =
-    useState("");
-
-  const [prizeMoney, setPrizeMoney] =
-    useState("");
+  const [deployedUrl, setDeployedUrl] = useState("");
+  const [event, setEvent] = useState("");
+  const [institution, setInstitution] = useState("");
+  const [prizeMoney, setPrizeMoney] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,10 +52,8 @@ export default function CreateProjectForm() {
       }
 
       toast.success("Project created successfully!");
-
       router.push("/dashboard");
       router.refresh();
-
     } catch (error) {
       toast.error("Something went wrong");
     } finally {
@@ -69,52 +62,36 @@ export default function CreateProjectForm() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-6 py-12">
-
+    <main className="min-h-screen bg-[var(--color-bg)] px-6 py-12 text-[var(--color-ink)] font-body">
       <div className="mx-auto max-w-3xl">
-
-        {/* BACK */}
-
         <Link
           href="/dashboard"
-          className="text-sm font-medium text-slate-500 transition hover:text-blue-600"
+          className="text-xs font-heading font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition"
         >
           ← Back to dashboard
         </Link>
 
-
-        {/* HEADER */}
-
-        <div className="mt-8">
-
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+        <div className="mt-6">
+          <p className="text-xs font-heading font-bold uppercase tracking-widest text-[var(--color-accent-deep)]">
             New workspace
           </p>
 
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-1 text-3xl font-heading font-bold tracking-tight text-[var(--color-ink)]">
             Create a project
           </h1>
 
-          <p className="mt-3 text-slate-500">
-            Start a new workspace for your project and bring
-            everything together in one place.
+          <p className="mt-2 text-xs font-body text-[var(--color-ink-muted)]">
+            Start a new workspace for your project and bring everything together in one place.
           </p>
-
         </div>
-
-
-        {/* FORM */}
 
         <form
           onSubmit={handleSubmit}
-          className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/40 sm:p-8"
+          className="mt-8 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8 shadow-xs space-y-6"
         >
-
-          {/* NAME */}
-
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Project name
+            <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
+              Project name *
             </label>
 
             <input
@@ -123,20 +100,15 @@ export default function CreateProjectForm() {
               type="text"
               maxLength={100}
               placeholder="e.g. Your Project Name"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
             />
-
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-1.5 text-[11px] font-body text-[var(--color-ink-soft)]">
               Give your project a clear and recognizable name.
             </p>
           </div>
 
-
-          {/* DESCRIPTION */}
-
-          <div className="mt-7">
-
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+          <div>
+            <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
               Description
             </label>
 
@@ -144,156 +116,99 @@ export default function CreateProjectForm() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={1000}
-              rows={6}
+              rows={5}
               placeholder="What is this project about?"
-              className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full resize-none rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
             />
-
           </div>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
 
-            {/* DEPLOYED URL */}
-
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Deployed URL
-                <span className="ml-1 font-normal text-slate-400">
-                  (optional)
-                </span>
+              <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
+                Deployed URL <span className="font-normal text-[var(--color-ink-soft)]">(optional)</span>
               </label>
 
               <input
                 type="url"
                 value={deployedUrl}
-                onChange={(e) =>
-                  setDeployedUrl(e.target.value)
-                }
+                onChange={(e) => setDeployedUrl(e.target.value)}
                 placeholder="https://your-project.vercel.app"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
               />
             </div>
 
-            {/* EVENT */}
-
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Event
-                <span className="ml-1 font-normal text-slate-400">
-                  (optional)
-                </span>
+              <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
+                Event <span className="font-normal text-[var(--color-ink-soft)]">(optional)</span>
               </label>
 
               <input
                 type="text"
                 value={event}
-                onChange={(e) =>
-                  setEvent(e.target.value)
-                }
+                onChange={(e) => setEvent(e.target.value)}
                 placeholder="e.g. Smart India Hackathon"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
               />
             </div>
 
-            {/* INSTITUTION */}
-
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Institution
-                <span className="ml-1 font-normal text-slate-400">
-                  (optional)
-                </span>
+              <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
+                Institution <span className="font-normal text-[var(--color-ink-soft)]">(optional)</span>
               </label>
 
               <input
                 type="text"
                 value={institution}
-                onChange={(e) =>
-                  setInstitution(e.target.value)
-                }
+                onChange={(e) => setInstitution(e.target.value)}
                 placeholder="e.g. HITK"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
               />
             </div>
 
-            {/* PRIZE */}
-
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Prize Money
-                <span className="ml-1 font-normal text-slate-400">
-                  (optional)
-                </span>
+              <label className="mb-1.5 block text-xs font-heading font-medium uppercase tracking-wide text-[var(--color-ink-muted)]">
+                Prize Money <span className="font-normal text-[var(--color-ink-soft)]">(optional)</span>
               </label>
 
               <input
                 type="text"
                 value={prizeMoney}
-                onChange={(e) =>
-                  setPrizeMoney(e.target.value)
-                }
+                onChange={(e) => setPrizeMoney(e.target.value)}
                 placeholder="e.g. ₹50,000"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] focus:ring-2 focus:ring-[var(--color-accent)]/40 transition placeholder:text-[var(--color-ink-soft)]"
               />
             </div>
-
           </div>
 
-          {/* INFO */}
-
-          <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50 p-5">
-
-            <div className="flex gap-3">
-
-              <div className="text-xl">
-                💡
+          <div className="rounded-[12px] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-4">
+            <div className="flex gap-3 items-start">
+              <div className="p-1 rounded-lg bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] shrink-0 mt-0.5">
+                <ShieldCheck size={18} />
               </div>
-
               <div>
-
-                <p className="font-semibold text-blue-900">
+                <p className="font-heading font-semibold text-xs text-[var(--color-ink)]">
                   You're the first admin
                 </p>
-
-                <p className="mt-1 text-sm leading-6 text-blue-700">
-                  You will automatically become an Admin of this
-                  project. You can invite other members and manage
-                  their roles after creating the project.
+                <p className="mt-1 text-xs font-body text-[var(--color-ink-muted)] leading-relaxed">
+                  You will automatically become an Admin of this project. You can invite other members and manage their roles after creating the project.
                 </p>
-
               </div>
-
             </div>
-
           </div>
 
-
-          {/* BUTTONS */}
-
-          <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
-            <Link
-              href="/dashboard"
-              className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Cancel
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+            <Link href="/dashboard">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                Cancel
+              </Button>
             </Link>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-2xl bg-blue-600 px-7 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading
-                ? "Creating..."
-                : "Create Project →"}
-            </button>
-
+            <Button type="submit" disabled={loading} variant="primary" className="w-full sm:w-auto">
+              {loading ? "Creating..." : "Create Project →"}
+            </Button>
           </div>
-
         </form>
-
       </div>
-
     </main>
   );
 }

@@ -8,29 +8,27 @@ export let setGlobalLoading;
 
 export default function RouteLoader({ children }) {
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true); // 🔥 START TRUE
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setGlobalLoading = (val) => setLoading(val);
   }, []);
 
   useEffect(() => {
-    // ALWAYS show loader for at least 1.2s
     setLoading(true);
-
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1500); // adjust this (1000–2000ms feels premium)
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [pathname]);
 
   return (
     <>
-  {children}
-   <div className={`loader-wrapper ${loading ? "show" : "hide"}`}>
-    <Loading />
-  </div>
+      {children}
+      <div className={`loader-wrapper ${loading ? "show" : "hide"}`}>
+        <Loading />
+      </div>
     </>
   );
 }

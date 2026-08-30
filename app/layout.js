@@ -1,52 +1,48 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { jetbrainsMono, inter } from "@/app/fonts";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import SessionWrapper from "@/components/SessionWrapper";
-// import { CartProvider } from "@/context/CartContext";
 import RouteLoader from "@/components/RouteLoader";
 import { Toaster } from "react-hot-toast";
-// import { CheckoutProvider } from "@/context/CheckoutContext";
-// import NotificationProvider from "@/components/NotificationProvider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata = {
-  title: "ProjectHub",
-  description: "Get your style up!",
+  title: "DevHouse — Organize, Share & Collaborate",
+  description: "Keep your projects organized & accessible. Store project files, important links, technical info, and team members in one workspace.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
+const themeScript = `
+  (function() {
+    try {
+      var storedTheme = localStorage.getItem('theme');
+      var isDark = storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {}
+  })();
+`;
+
 export default function RootLayout({ children }) {
-
-
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${jetbrainsMono.variable} ${inter.variable}`}>
+      <head>
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] font-body antialiased">
         <SessionWrapper>
-          {/* <NotificationProvider /> */}
-          {/* <CartProvider> */}
-            <RouteLoader>
-              {/* <CheckoutProvider> */}
-
-
-              {/* <Navbar /> */}
-              <div className="min-h-screen">
-
-                {children}
-
-              </div>
-              <Footer />
-              {/* </CheckoutProvider> */}
-            </RouteLoader>
-          {/* </CartProvider> */}
+          <RouteLoader>
+            <div className="min-h-screen flex flex-col">
+              {children}
+            </div>
+          </RouteLoader>
         </SessionWrapper>
         <Toaster
           position="top-center"
@@ -54,23 +50,23 @@ export default function RootLayout({ children }) {
           toastOptions={{
             duration: 3000,
             style: {
-              background: "#18181b",
-              color: "#fff",
-              borderRadius: "16px",
-              padding: "16px",
-              fontSize: "15px",
+              background: "var(--color-surface)",
+              color: "var(--color-ink)",
+              borderRadius: "12px",
+              padding: "12px 18px",
+              fontSize: "14px",
+              fontFamily: "var(--font-heading), monospace",
+              border: "1px solid var(--color-border)",
             },
-
             success: {
               iconTheme: {
-                primary: "#22c55e",
-                secondary: "#fff",
+                primary: "var(--color-accent)",
+                secondary: "var(--color-ink)",
               },
             },
-
             error: {
               iconTheme: {
-                primary: "#ef4444",
+                primary: "var(--color-danger)",
                 secondary: "#fff",
               },
             },

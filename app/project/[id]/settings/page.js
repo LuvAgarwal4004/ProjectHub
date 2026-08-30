@@ -5,14 +5,10 @@ import connectDb from "@/db/connectDb";
 import Project from "@/models/Project";
 
 import { authOptions } from "@/lib/authOptions";
-
 import ProjectSettings from "./ProjectSettings";
 
-export default async function SettingsPage({
-  params,
-}) {
-  const session =
-    await getServerSession(authOptions);
+export default async function SettingsPage({ params }) {
+  const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/login");
@@ -22,34 +18,34 @@ export default async function SettingsPage({
 
   await connectDb();
 
-  const project =
-    await Project.findById(id)
-      .populate(
-        "members.user",
-        "name email image"
-      )
-      .lean();
+  const [project, userProjects] = await Promise.all([
+    Project.findById(id)
+      .populate("members.user", "name email image")
+      .lean(),
+    Project.find({ "members.user": session.user.id })
+      .select("name _id")
+      .sort({ updatedAt: -1 })
+      .lean(),
+  ]);
 
   if (!project) {
     notFound();
   }
 
-  const member =
-    project.members.find(
-      (m) =>
-        String(m.user?._id) ===
-        String(session.user.id)
-    );
+  const member = project.members.find(
+    (m) => String(m.user?._id) === String(session.user.id)
+  );
 
   if (!member || member.role !== "admin") {
     notFound();
   }
 
+  const serialise = (value) => JSON.parse(JSON.stringify(value));
+
   return (
     <ProjectSettings
-      project={JSON.parse(
-        JSON.stringify(project)
-      )}
+      project={serialise(project)}
+      userProjects={serialise(userProjects)}
     />
   );
 }

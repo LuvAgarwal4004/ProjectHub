@@ -334,75 +334,55 @@ export default function FileEditorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm">
-      <div className="flex h-[95vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-3 backdrop-blur-xs font-body">
+      <div className="flex h-[95vh] w-full max-w-7xl flex-col overflow-hidden rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
 
         {/* HEADER */}
-
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="truncate font-bold text-slate-900">
+              <h2 className="truncate font-heading font-bold text-base text-[var(--color-ink)]">
                 {file.name}
               </h2>
 
               {hasError && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold text-red-700">
-                  <AlertTriangle
-                    size={12}
-                  />
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--color-danger)]/15 border border-[var(--color-danger)]/30 px-2.5 py-0.5 text-[10px] font-heading font-bold text-[var(--color-danger)]">
+                  <AlertTriangle size={12} />
                   ERROR
                 </span>
               )}
             </div>
 
-            <p className="truncate text-xs text-slate-400">
+            <p className="truncate text-xs font-mono text-[var(--color-ink-muted)]">
               {file.path || file.name}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            disabled={
-              saving ||
-              markingError
-            }
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+            disabled={saving || markingError}
+            className="rounded-xl p-2 text-[var(--color-ink-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] transition"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* CURRENT ERROR */}
-
         {hasError && (
-          <div className="border-b border-red-100 bg-red-50 px-4 py-3 sm:px-6">
+          <div className="border-b border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-3 sm:px-6">
             <div className="flex gap-3">
-              <AlertTriangle
-                size={20}
-                className="mt-0.5 shrink-0 text-red-500"
-              />
-
+              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-[var(--color-danger)]" />
               <div className="min-w-0">
-                <p className="font-bold text-red-700">
+                <p className="font-heading font-bold text-xs uppercase tracking-wider text-[var(--color-danger)]">
                   Error marked on this file
                 </p>
-
-                {(errorStartLine ||
-                  errorEndLine) && (
-                  <p className="mt-0.5 text-xs font-semibold text-red-600">
-                    Lines{" "}
-                    {errorStartLine ||
-                      "?"}
-                    {errorEndLine &&
-                    errorEndLine !==
-                      errorStartLine
-                      ? ` – ${errorEndLine}`
-                      : ""}
+                {(errorStartLine || errorEndLine) && (
+                  <p className="mt-0.5 text-xs font-mono text-[var(--color-danger)] font-semibold">
+                    Lines {errorStartLine || "?"}
+                    {errorEndLine && errorEndLine !== errorStartLine ? ` – ${errorEndLine}` : ""}
                   </p>
                 )}
-
-                <p className="mt-1 break-words text-sm text-red-600">
+                <p className="mt-1 break-words text-xs text-[var(--color-ink)]">
                   {errorDescription}
                 </p>
               </div>
@@ -411,98 +391,73 @@ export default function FileEditorModal({
         )}
 
         {/* EDITOR */}
-
         <div className="min-h-0 flex-1 p-3 sm:p-5">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-sm text-slate-500">
+            <div className="flex h-full items-center justify-center text-sm text-[var(--color-ink-muted)]">
               Loading file...
             </div>
           ) : error && !content ? (
-            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-red-500">
+            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-[var(--color-danger)]">
               {error}
             </div>
           ) : (
-            <div className="relative flex h-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
+            <div className="relative flex h-full overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#0B0B0A]">
 
               {/* LINE NUMBERS */}
-
               <div
                 ref={lineNumbersRef}
-                className="z-20 w-14 shrink-0 overflow-hidden border-r border-slate-800 bg-slate-950 text-right font-mono text-sm leading-6 text-slate-500"
+                className="z-20 w-14 shrink-0 overflow-hidden border-r border-[#1C1E18] bg-[#0B0B0A] text-right font-mono text-xs leading-6 text-[#6B6E66]"
               >
-                {lines.map(
-                  (_, index) => {
-                    const lineNumber =
-                      index + 1;
-
-                    return (
-                      <div
-                        key={lineNumber}
-                        className={`box-border h-6 px-3 ${
-                          isErrorLine(
-                            lineNumber
-                          )
-                            ? "bg-red-500/30 text-red-300"
-                            : ""
-                        }`}
-                      >
-                        {lineNumber}
-                      </div>
-                    );
-                  }
-                )}
+                {lines.map((_, index) => {
+                  const lineNumber = index + 1;
+                  return (
+                    <div
+                      key={lineNumber}
+                      className={`box-border h-6 px-3 ${
+                        isErrorLine(lineNumber)
+                          ? "bg-[var(--color-danger)]/30 text-red-300 font-bold"
+                          : ""
+                      }`}
+                    >
+                      {lineNumber}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* CODE AREA */}
-
               <div className="relative min-w-0 flex-1 overflow-hidden">
-
                 {/* RED HIGHLIGHT LAYER */}
-
                 <div
                   ref={highlightRef}
-                  className="pointer-events-none absolute inset-0 z-0 overflow-hidden font-mono text-sm leading-6"
+                  className="pointer-events-none absolute inset-0 z-0 overflow-hidden font-mono text-xs leading-6"
                 >
-                  {lines.map(
-                    (line, index) => {
-                      const lineNumber =
-                        index + 1;
-
-                      return (
-                        <div
-                          key={lineNumber}
-                          className={`h-6 whitespace-pre ${
-                            isErrorLine(
-                              lineNumber
-                            )
-                              ? "bg-red-500/20 text-red-300"
-                              : "text-transparent"
-                          }`}
-                        >
-                          {line || " "}
-                        </div>
-                      );
-                    }
-                  )}
+                  {lines.map((line, index) => {
+                    const lineNumber = index + 1;
+                    return (
+                      <div
+                        key={lineNumber}
+                        className={`h-6 whitespace-pre ${
+                          isErrorLine(lineNumber)
+                            ? "bg-[var(--color-danger)]/20 text-red-300 font-bold"
+                            : "text-transparent"
+                        }`}
+                      >
+                        {line || " "}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* ACTUAL EDITOR */}
-
                 <textarea
                   ref={textareaRef}
                   value={content}
-                  onChange={(e) =>
-                    setContent(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setContent(e.target.value)}
                   onScroll={syncScroll}
                   spellCheck={false}
-                  disabled={
-                    saving ||
-                    markingError
-                  }
-                  className="relative z-10 h-full w-full resize-none overflow-auto bg-transparent p-0 font-mono text-sm leading-6 text-slate-100 caret-white outline-none"
+                  disabled={saving || markingError}
+                  className="relative z-10 h-full w-full resize-none overflow-auto bg-transparent p-0 font-mono text-xs leading-6 text-[#F7F7F4] caret-[var(--color-accent)] outline-none"
                   style={{
                     tabSize: 2,
                     paddingTop: 0,
@@ -515,142 +470,92 @@ export default function FileEditorModal({
         </div>
 
         {/* CONTROLS */}
-
-        <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
-
+        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 sm:px-6">
           {error && (
-            <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p className="mb-3 rounded-xl bg-[var(--color-danger)]/15 border border-[var(--color-danger)]/30 px-3 py-2 text-xs text-[var(--color-danger)] font-medium">
               {error}
             </p>
           )}
 
           <div className="grid gap-3 lg:grid-cols-[1fr_120px_120px_auto_auto]">
-
             {/* DESCRIPTION */}
-
             <input
               value={errorDescription}
-              onChange={(e) =>
-                setErrorDescription(
-                  e.target.value
-                )
-              }
-              disabled={
-                saving ||
-                markingError
-              }
-              placeholder={
-                hasError
-                  ? "Update error description..."
-                  : "Describe an error..."
-              }
-              className="min-w-0 rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              onChange={(e) => setErrorDescription(e.target.value)}
+              disabled={saving || markingError}
+              placeholder={hasError ? "Update error description..." : "Describe an error..."}
+              className="min-w-0 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2.5 text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-danger)]"
             />
 
             {/* START */}
-
             <input
               type="number"
               min="1"
               value={errorStartLine}
-              onChange={(e) =>
-                setErrorStartLine(
-                  e.target.value
-                )
-              }
-              disabled={
-                saving ||
-                markingError
-              }
+              onChange={(e) => setErrorStartLine(e.target.value)}
+              disabled={saving || markingError}
               placeholder="Start #"
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2.5 text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-danger)]"
             />
 
             {/* END */}
-
             <input
               type="number"
               min="1"
               value={errorEndLine}
-              onChange={(e) =>
-                setErrorEndLine(
-                  e.target.value
-                )
-              }
-              disabled={
-                saving ||
-                markingError
-              }
+              onChange={(e) => setErrorEndLine(e.target.value)}
+              disabled={saving || markingError}
               placeholder="End #"
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2.5 text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-danger)]"
             />
 
             {/* MARK */}
-
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={markError}
-              disabled={
-                loading ||
-                saving ||
-                markingError ||
-                !errorDescription.trim()
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              disabled={loading || saving || markingError || !errorDescription.trim()}
+              className="text-[var(--color-danger)] border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/10"
             >
-              <AlertTriangle size={16} />
-
-              {markingError
-                ? "Marking..."
-                : hasError
-                ? "Update Error"
-                : "Mark Error"}
-            </button>
+              <AlertTriangle size={15} />
+              {markingError ? "Marking..." : hasError ? "Update Error" : "Mark Error"}
+            </Button>
 
             {/* SAVE */}
-
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={saveFile}
-              disabled={
-                loading ||
-                saving ||
-                markingError
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading || saving || markingError}
             >
               {saving ? (
                 "Saving..."
               ) : hasError ? (
                 <>
-                  <CheckCircle2 size={16} />
+                  <CheckCircle2 size={15} />
                   Save & Fix
                 </>
               ) : (
                 <>
-                  <Save size={16} />
+                  <Save size={15} />
                   Save File
                 </>
               )}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-3">
             <input
               value={fixNote}
-              onChange={(e) =>
-                setFixNote(e.target.value)
-              }
-              disabled={
-                saving ||
-                markingError
-              }
+              onChange={(e) => setFixNote(e.target.value)}
+              disabled={saving || markingError}
               placeholder="Optional: describe what you fixed..."
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+              className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2.5 text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)]"
             />
           </div>
 
-          <p className="mt-2 text-xs text-slate-400">
-            Every line is numbered. Enter a start and
-            end line to highlight an entire code section.
+          <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
+            Every line is numbered. Enter a start and end line to highlight an entire code section.
           </p>
         </div>
       </div>

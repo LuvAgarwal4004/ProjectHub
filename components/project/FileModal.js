@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, UploadCloud, FolderOpen } from "lucide-react";
+import { X, UploadCloud, FolderOpen, FileText } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function FileModal({
   project,
@@ -26,53 +27,19 @@ export default function FileModal({
   const [dragging, setDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  /*
-   * ============================================================
-   * GET FILES FROM A DROPPED FILE/FOLDER
-   * ============================================================
-   */
   function isEditableFile(file) {
     const editableExtensions = [
-      "js",
-      "jsx",
-      "ts",
-      "tsx",
-      "css",
-      "scss",
-      "html",
-      "json",
-      "md",
-      "txt",
-      "xml",
-      "yml",
-      "yaml",
-      "py",
-      "java",
-      "c",
-      "cpp",
-      "h",
-      "hpp",
-      "cs",
-      "php",
-      "sql",
-      "sh",
-      "bash",
-      "env",
+      "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md",
+      "txt", "xml", "yml", "yaml", "py", "java", "c", "cpp", "h",
+      "hpp", "cs", "php", "sql", "sh", "bash", "env",
     ];
 
-    const extension =
-      file.name
-        ?.split(".")
-        .pop()
-        ?.toLowerCase();
-
-    return editableExtensions.includes(
-      extension
-    );
+    const extension = file.name?.split(".").pop()?.toLowerCase();
+    return editableExtensions.includes(extension);
   }
+
   async function readDirectory(entry, parentPath = "") {
     const files = [];
-
     const reader = entry.createReader();
 
     async function readEntries() {
@@ -83,29 +50,16 @@ export default function FileModal({
 
     while (true) {
       const entries = await readEntries();
-
-      if (!entries.length) {
-        break;
-      }
+      if (!entries.length) break;
 
       for (const child of entries) {
-        const childPath = parentPath
-          ? `${parentPath}/${child.name}`
-          : child.name;
+        const childPath = parentPath ? `${parentPath}/${child.name}` : child.name;
 
         if (child.isFile) {
           const file = await getFileFromEntry(child);
-
-          files.push({
-            file,
-            relativePath: childPath,
-          });
+          files.push({ file, relativePath: childPath });
         } else if (child.isDirectory) {
-          const nestedFiles = await readDirectory(
-            child,
-            childPath
-          );
-
+          const nestedFiles = await readDirectory(child, childPath);
           files.push(...nestedFiles);
         }
       }
@@ -122,45 +76,27 @@ export default function FileModal({
 
   async function getDroppedFiles(dataTransfer) {
     const items = Array.from(dataTransfer.items || []);
-
     const results = [];
 
     for (const item of items) {
       if (item.kind !== "file") continue;
-
-      const entry =
-        item.webkitGetAsEntry?.();
+      const entry = item.webkitGetAsEntry?.();
 
       if (!entry) {
         const file = item.getAsFile();
-
         if (file) {
-          results.push({
-            file,
-            relativePath: file.name,
-          });
+          results.push({ file, relativePath: file.name });
         }
-
         continue;
       }
 
       if (entry.isFile) {
-        const file =
-          await getFileFromEntry(entry);
-
-        results.push({
-          file,
-          relativePath: file.name,
-        });
+        const file = await getFileFromEntry(entry);
+        results.push({ file, relativePath: file.name });
       }
 
       if (entry.isDirectory) {
-        const folderFiles =
-          await readDirectory(
-            entry,
-            entry.name
-          );
-
+        const folderFiles = await readDirectory(entry, entry.name);
         results.push(...folderFiles);
       }
     }
@@ -168,357 +104,173 @@ export default function FileModal({
     return results;
   }
 
-  /*
-   * ============================================================
-   * NORMAL FILE SELECTION
-   * ============================================================
-   */
-
   function handleFilesSelected(event) {
-    const files = Array.from(
-      event.target.files || []
-    );
-
+    const files = Array.from(event.target.files || []);
     if (!files.length) return;
 
-    const formattedFiles = files.map(
-      (file) => ({
-        file,
-        relativePath:
-          file.webkitRelativePath ||
-          file.name,
-      })
-    );
+    const formattedFiles = files.map((file) => ({
+      file,
+      relativePath: file.webkitRelativePath || file.name,
+    }));
 
     setSelectedFiles(formattedFiles);
 
-    /*
-     * Automatically use the first file's name
-     * when uploading a normal single file.
-     */
     if (formattedFiles.length === 1) {
-      setName(
-        formattedFiles[0].file.name
-      );
+      setName(formattedFiles[0].file.name);
     }
   }
 
-  /*
-   * ============================================================
-   * FOLDER SELECTION
-   * ============================================================
-   */
-
   function handleFolderSelected(event) {
-    const files = Array.from(
-      event.target.files || []
-    );
-
+    const files = Array.from(event.target.files || []);
     if (!files.length) return;
 
-    const formattedFiles = files.map(
-      (file) => ({
-        file,
-        relativePath:
-          file.webkitRelativePath ||
-          file.name,
-      })
-    );
+    const formattedFiles = files.map((file) => ({
+      file,
+      relativePath: file.webkitRelativePath || file.name,
+    }));
 
     setSelectedFiles(formattedFiles);
 
-    /*
-     * For folders, use the folder name as
-     * the display name.
-     */
-    const firstPath =
-      formattedFiles[0]?.relativePath;
-
+    const firstPath = formattedFiles[0]?.relativePath;
     if (firstPath) {
-      const folderName =
-        firstPath.split("/")[0];
-
+      const folderName = firstPath.split("/")[0];
       setName(folderName);
     }
   }
 
-  /*
-   * ============================================================
-   * DRAG & DROP
-   * ============================================================
-   */
-
   function handleDragOver(event) {
     event.preventDefault();
     event.stopPropagation();
-
     setDragging(true);
   }
 
   function handleDragLeave(event) {
     event.preventDefault();
     event.stopPropagation();
-
     setDragging(false);
   }
 
   async function handleDrop(event) {
     event.preventDefault();
     event.stopPropagation();
-
     setDragging(false);
 
     try {
-      const files =
-        await getDroppedFiles(
-          event.dataTransfer
-        );
-
+      const files = await getDroppedFiles(event.dataTransfer);
       if (!files.length) {
-        alert(
-          "No files were found in the dropped item."
-        );
-
+        alert("No files were found in the dropped item.");
         return;
       }
 
       setSelectedFiles(files);
 
-      /*
-       * If one file was dropped,
-       * use its name.
-       */
       if (files.length === 1) {
         setName(files[0].file.name);
       } else {
-        /*
-         * If multiple files were dropped,
-         * show a useful name.
-         */
-        setName(
-          `${files.length} files`
-        );
+        setName(`${files.length} files`);
       }
     } catch (error) {
-      console.error(
-        "DROP ERROR:",
-        error
-      );
-
-      alert(
-        "Could not read the dropped files/folder."
-      );
+      console.error("DROP ERROR:", error);
+      alert("Could not read the dropped files/folder.");
     }
   }
 
-  /*
-   * ============================================================
-   * CLOUDINARY UPLOAD
-   * ============================================================
-   */
+  async function uploadSingleFile(selected) {
+    const { file, relativePath } = selected;
 
-  async function uploadSingleFile(
-    selected
-  ) {
-    const {
-      file,
-      relativePath,
-    } = selected;
+    const signRes = await fetch(`/api/projects/${project._id}/files/sign`, {
+      method: "POST",
+    });
 
-    /*
-     * Ask our backend for a Cloudinary signature.
-     */
-    const signRes = await fetch(
-      `/api/projects/${project._id}/files/sign`,
+    const signData = await signRes.json();
+    if (!signRes.ok) {
+      throw new Error(signData.error || "Could not prepare upload");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", signData.apiKey);
+    formData.append("timestamp", signData.timestamp);
+    formData.append("signature", signData.signature);
+    formData.append("folder", signData.folder);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
       {
         method: "POST",
+        body: formData,
       }
     );
 
-    const signData =
-      await signRes.json();
-
-    if (!signRes.ok) {
-      throw new Error(
-        signData.error ||
-        "Could not prepare upload"
-      );
-    }
-
-    /*
-     * Cloudinary upload.
-     */
-    const formData =
-      new FormData();
-
-    formData.append(
-      "file",
-      file
-    );
-
-    formData.append(
-      "api_key",
-      signData.apiKey
-    );
-
-    formData.append(
-      "timestamp",
-      signData.timestamp
-    );
-
-    formData.append(
-      "signature",
-      signData.signature
-    );
-
-    formData.append(
-      "folder",
-      signData.folder
-    );
-
-    const uploadRes =
-      await fetch(
-        `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-    const uploadData =
-      await uploadRes.json();
-
+    const uploadData = await uploadRes.json();
     if (!uploadRes.ok) {
       throw new Error(
-        uploadData.error?.message ||
-        `Cloudinary upload failed for ${file.name}`
+        uploadData.error?.message || `Cloudinary upload failed for ${file.name}`
       );
     }
 
-    /*
-     * Save metadata in MongoDB.
-     */
-    const saveRes =
-      await fetch(
-        `/api/projects/${project._id}/files`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            name:
-              relativePath ||
-              file.name,
+    const saveRes = await fetch(`/api/projects/${project._id}/files`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: relativePath || file.name,
+        originalName: file.name,
+        description,
+        url: uploadData.secure_url,
+        publicId: uploadData.public_id,
+        resourceType: uploadData.resource_type,
+        format: uploadData.format || "",
+        size: uploadData.bytes || file.size,
+        mimeType: file.type || "application/octet-stream",
+        extension: file.name.includes(".") ? file.name.split(".").pop() : "",
+        editable: isEditableFile(file),
+      }),
+    });
 
-            originalName:
-              file.name,
-
-            description,
-
-            url:
-              uploadData.secure_url,
-
-            publicId:
-              uploadData.public_id,
-
-            resourceType:
-              uploadData.resource_type,
-
-            format:
-              uploadData.format || "",
-
-            size:
-              uploadData.bytes || file.size,
-
-            mimeType:
-              file.type ||
-              "application/octet-stream",
-
-            extension:
-              file.name.includes(".")
-                ? file.name
-                  .split(".")
-                  .pop()
-                : "",
-
-            editable:
-              isEditableFile(file),
-          }),
-        }
-      );
-
-    const saveData =
-      await saveRes.json();
-
+    const saveData = await saveRes.json();
     if (!saveRes.ok) {
-      throw new Error(
-        saveData.error ||
-        `Could not save ${file.name}`
-      );
+      throw new Error(saveData.error || `Could not save ${file.name}`);
     }
 
     return saveData.file;
   }
 
-  /*
-   * ============================================================
-   * SUBMIT
-   * ============================================================
-   */
-
   async function submit(event) {
     event.preventDefault();
 
     if (!name.trim()) {
-      alert(
-        "Enter a file name"
-      );
-
+      alert("Enter a file name");
       return;
     }
 
-    /*
-     * EDIT MODE
-     */
     if (editing) {
       setLoading(true);
 
       try {
-        const res =
-          await fetch(
-            `/api/projects/${project._id}/files/${file._id}`,
-            {
-              method: "PATCH",
+        const res = await fetch(
+          `/api/projects/${project._id}/files/${file._id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name,
+              description,
+            }),
+          }
+        );
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body: JSON.stringify({
-                name,
-                description,
-              }),
-            }
-          );
-
-        const data =
-          await res.json();
-
+        const data = await res.json();
         if (!res.ok) {
-          throw new Error(
-            data.error ||
-            "Could not update file"
-          );
+          throw new Error(data.error || "Could not update file");
         }
 
         onUpdated(data.file);
       } catch (error) {
-        alert(
-          error.message
-        );
+        alert(error.message);
       } finally {
         setLoading(false);
       }
@@ -526,15 +278,8 @@ export default function FileModal({
       return;
     }
 
-    /*
-     * UPLOAD MODE
-     */
-
     if (!selectedFiles.length) {
-      alert(
-        "Select a file or folder first."
-      );
-
+      alert("Select a file or folder first.");
       return;
     }
 
@@ -544,89 +289,32 @@ export default function FileModal({
     try {
       const uploadedFiles = [];
 
-      for (
-        let i = 0;
-        i < selectedFiles.length;
-        i++
-      ) {
-        const uploaded =
-          await uploadSingleFile(
-            selectedFiles[i]
-          );
-
-        uploadedFiles.push(
-          uploaded
-        );
-
-        const progress =
-          Math.round(
-            ((i + 1) /
-              selectedFiles.length) *
-            100
-          );
-
-        setUploadProgress(
-          progress
-        );
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const uploaded = await uploadSingleFile(selectedFiles[i]);
+        uploadedFiles.push(uploaded);
+        const progress = Math.round(((i + 1) / selectedFiles.length) * 100);
+        setUploadProgress(progress);
       }
 
-      /*
-       * Tell parent about uploaded files.
-       *
-       * If your existing parent expects one file,
-       * send the first one.
-       *
-       * If multiple files were uploaded,
-       * send the whole array as well.
-       */
-      if (
-        uploadedFiles.length === 1
-      ) {
-        onCreated(
-          uploadedFiles[0]
-        );
+      if (uploadedFiles.length === 1) {
+        onCreated(uploadedFiles[0]);
       } else {
-        uploadedFiles.forEach(
-          (uploaded) =>
-            onCreated(uploaded)
-        );
+        uploadedFiles.forEach((uploaded) => onCreated(uploaded));
       }
 
-      /*
-       * Done.
-       */
       onClose();
     } catch (error) {
-      console.error(
-        "UPLOAD ERROR:",
-        error
-      );
-
-      alert(
-        error.message ||
-        "Upload failed"
-      );
+      console.error("UPLOAD ERROR:", error);
+      alert(error.message || "Upload failed");
     } finally {
       setLoading(false);
     }
   }
 
-  /*
-   * ============================================================
-   * UI
-   * ============================================================
-   */
-
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs font-body"
       onDragOver={(e) => {
-        /*
-         * VERY IMPORTANT:
-         *
-         * Prevent the browser from navigating to
-         * the dropped folder.
-         */
         e.preventDefault();
         e.stopPropagation();
       }}
@@ -635,18 +323,14 @@ export default function FileModal({
         e.stopPropagation();
       }}
     >
-      <div className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl sm:p-7">
+      <div className="w-full max-w-xl rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl sm:p-8">
         {/* HEADER */}
-
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              {editing
-                ? "Edit File"
-                : "Upload Files"}
+            <h2 className="text-xl font-heading font-extrabold uppercase text-[var(--color-ink)]">
+              {editing ? "Edit File" : "Upload Files"}
             </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
               {editing
                 ? "Change the file name or description."
                 : "Upload files or an entire folder to your project."}
@@ -657,98 +341,73 @@ export default function FileModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50"
+            className="rounded-lg p-1.5 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)] transition disabled:opacity-50"
           >
             <X size={20} />
           </button>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="mt-6 space-y-5"
-        >
+        <form onSubmit={submit} className="mt-6 space-y-5">
           {!editing && (
             <>
               {/* DROP AREA */}
-
               <div
                 onDragEnter={handleDragOver}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`rounded-2xl border-2 border-dashed p-7 text-center transition ${dragging
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-slate-200 hover:border-blue-400 hover:bg-blue-50/30"
-                  }`}
+                className={`rounded-[12px] border-2 border-dashed p-8 text-center transition ${
+                  dragging
+                    ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15"
+                    : "border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-accent-deep)]"
+                }`}
               >
                 <UploadCloud
-                  size={34}
-                  className="mx-auto text-blue-600"
+                  size={36}
+                  className="mx-auto text-[var(--color-accent-deep)]"
                 />
 
-                <p className="mt-3 font-semibold text-slate-800">
+                <p className="mt-3 font-heading font-bold text-sm text-[var(--color-ink)]">
                   {dragging
                     ? "Drop files or folder here"
                     : selectedFiles.length
-                      ? `${selectedFiles.length} file${selectedFiles.length ===
-                        1
-                        ? ""
-                        : "s"
-                      } selected`
-                      : "Drag & drop files or a folder"}
+                    ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`
+                    : "Drag & drop files or a folder"}
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)] font-body">
                   Or choose files/folder manually
                 </p>
 
                 {/* BUTTONS */}
-
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                  {/* FILE INPUT */}
-
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() =>
-                      inputRef.current?.click()
-                    }
-                    className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    onClick={() => inputRef.current?.click()}
+                    className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5 text-xs font-heading font-bold text-[var(--color-ink)] shadow-2xs hover:bg-[var(--color-surface-muted)] transition disabled:opacity-50"
                   >
                     Choose Files
                   </button>
 
-                  {/* FOLDER INPUT */}
-
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() =>
-                      folderInputRef.current?.click()
-                    }
-                    className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                    onClick={() => folderInputRef.current?.click()}
+                    className="flex items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-xs font-heading font-bold text-[#0B0B0A] hover:bg-[var(--color-accent-hover)] transition disabled:opacity-50"
                   >
-                    <FolderOpen
-                      size={17}
-                    />
-
+                    <FolderOpen size={16} />
                     Choose Folder
                   </button>
                 </div>
-
-                {/* NORMAL FILE INPUT */}
 
                 <input
                   ref={inputRef}
                   type="file"
                   multiple
                   className="hidden"
-                  onChange={
-                    handleFilesSelected
-                  }
+                  onChange={handleFilesSelected}
                 />
-
-                {/* FOLDER INPUT */}
 
                 <input
                   ref={folderInputRef}
@@ -757,155 +416,105 @@ export default function FileModal({
                   webkitdirectory=""
                   directory=""
                   className="hidden"
-                  onChange={
-                    handleFolderSelected
-                  }
+                  onChange={handleFolderSelected}
                 />
               </div>
 
-              {/* SELECTED FILES */}
-
-              {selectedFiles.length >
-                0 && (
-                  <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Selected
-                    </p>
-
-                    <div className="space-y-1">
-                      {selectedFiles
-                        .slice(0, 50)
-                        .map(
-                          (
-                            selected,
-                            index
-                          ) => (
-                            <div
-                              key={`${selected.relativePath}-${index}`}
-                              className="truncate rounded-lg bg-white px-3 py-2 text-xs text-slate-600"
-                              title={
-                                selected.relativePath
-                              }
-                            >
-                              📄{" "}
-                              {
-                                selected.relativePath
-                              }
-                            </div>
-                          )
-                        )}
-
-                      {selectedFiles.length >
-                        50 && (
-                          <p className="px-3 py-1 text-xs text-slate-400">
-                            +
-                            {selectedFiles.length -
-                              50}{" "}
-                            more files
-                          </p>
-                        )}
-                    </div>
+              {/* SELECTED FILES PREVIEW */}
+              {selectedFiles.length > 0 && (
+                <div className="max-h-36 overflow-y-auto rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+                  <p className="mb-2 text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-soft)]">
+                    Selected Files ({selectedFiles.length})
+                  </p>
+                  <div className="space-y-1">
+                    {selectedFiles.slice(0, 50).map((selected, index) => (
+                      <div
+                        key={`${selected.relativePath}-${index}`}
+                        className="truncate rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-body text-[var(--color-ink)] flex items-center gap-1.5"
+                        title={selected.relativePath}
+                      >
+                        <FileText size={13} className="text-[var(--color-ink-muted)] shrink-0" />
+                        <span className="truncate">{selected.relativePath}</span>
+                      </div>
+                    ))}
+                    {selectedFiles.length > 50 && (
+                      <p className="px-3 py-1 text-xs text-[var(--color-ink-muted)] font-body">
+                        +{selectedFiles.length - 50} more files
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
             </>
           )}
 
-          {/* FILE NAME */}
-
+          {/* FILE NAME INPUT */}
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              {selectedFiles.length >
-                1
-                ? "Upload name"
-                : "File name"}
+            <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+              {selectedFiles.length > 1 ? "Upload Name" : "File Name"}
             </label>
-
             <input
               value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setName(e.target.value)}
               disabled={loading}
               placeholder="Project proposal.pdf"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+              className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
             />
           </div>
 
-          {/* DESCRIPTION */}
-
+          {/* DESCRIPTION TEXTAREA */}
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+            <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
               Description
             </label>
-
             <textarea
               value={description}
-              onChange={(e) =>
-                setDescription(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setDescription(e.target.value)}
               disabled={loading}
               placeholder="What is this file about?"
-              rows={4}
-              className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+              rows={3}
+              className="w-full resize-none rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
             />
           </div>
 
           {/* PROGRESS */}
-
-          {loading &&
-            !editing && (
-              <div>
-                <div className="mb-2 flex justify-between text-xs font-semibold text-slate-500">
-                  <span>
-                    Uploading...
-                  </span>
-
-                  <span>
-                    {
-                      uploadProgress
-                    }
-                    %
-                  </span>
-                </div>
-
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-blue-600 transition-all duration-300"
-                    style={{
-                      width: `${uploadProgress}%`,
-                    }}
-                  />
-                </div>
+          {loading && !editing && (
+            <div>
+              <div className="mb-1.5 flex justify-between text-xs font-heading font-bold text-[var(--color-accent-deep)]">
+                <span>Uploading...</span>
+                <span>{uploadProgress}%</span>
               </div>
-            )}
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-muted)]">
+                <div
+                  className="h-full rounded-full bg-[var(--color-accent-deep)] transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
 
-          {/* SUBMIT */}
-
-          <button
+          {/* SUBMIT BUTTON */}
+          <Button
             type="submit"
+            variant="primary"
+            size="lg"
+            className="w-full"
             disabled={
               loading ||
               !name.trim() ||
-              (!editing &&
-                !selectedFiles.length)
+              (!editing && !selectedFiles.length)
             }
-            className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading
               ? editing
                 ? "Saving..."
                 : `Uploading ${uploadProgress}%...`
               : editing
-                ? "Save Changes"
-                : selectedFiles.length >
-                  1
-                  ? `Upload ${selectedFiles.length} Files`
-                  : "Upload File"}
-          </button>
+              ? "Save Changes"
+              : selectedFiles.length > 1
+              ? `Upload ${selectedFiles.length} Files`
+              : "Upload File"}
+          </Button>
         </form>
       </div>
     </div>

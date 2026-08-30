@@ -10,7 +10,6 @@ import MarkErrorModal from "./MarkErrorModal";
 import ProjectAI from "@/app/project/[id]/ProjectAI";
 
 import {
-  ArrowLeft,
   Settings,
   CheckCircle2,
   Clock3,
@@ -22,31 +21,26 @@ import {
   Trash2,
   Download,
   ExternalLink,
-  Star,
   Pencil,
   Award,
-  Wallet,
-  FileCheck,
   Sparkles,
+  Trophy,
+  Building,
 } from "lucide-react";
 
 import CreateTaskModal from "./CreateTaskModal";
 import FileModal from "./FileModal";
 import LinkModal from "./LinkModal";
 import OtherInfoTab from "./OtherInfoTab";
-// const EDITABLE_EXTENSIONS = [
-//   "js", "jsx", "ts", "tsx", "css", "scss", "html", "json", "md", "txt",
-//   "xml", "yml", "yaml", "py", "java", "c", "cpp", "h", "hpp", "cs",
-//   "php", "sql", "sh", "bash", "env",
-// ];
 
-// function isEditableFileName(name = "") {
-//   const extension = name.split(".").pop()?.toLowerCase();
-//   return EDITABLE_EXTENSIONS.includes(extension);
-// }
+import AppShell from "@/components/layout/AppShell";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 
 export default function ProjectWorkspace({
   project,
+  userProjects = [],
   tasks: initialTasks,
   files: initialFiles,
   links: initialLinks,
@@ -54,1590 +48,514 @@ export default function ProjectWorkspace({
 }) {
   const router = useRouter();
 
-  const [tab, setTab] =
-    useState("overview");
+  const [tab, setTab] = useState("overview");
+  const [tasks, setTasks] = useState(initialTasks);
+  const [files, setFiles] = useState(initialFiles);
+  const [links, setLinks] = useState(initialLinks);
 
-  const [tasks, setTasks] =
-    useState(initialTasks);
+  const [taskModal, setTaskModal] = useState(false);
+  const [fileModal, setFileModal] = useState(null);
+  const [linkModal, setLinkModal] = useState(false);
+  const [editorFile, setEditorFile] = useState(null);
+  const [errorFile, setErrorFile] = useState(null);
 
-  const [files, setFiles] =
-    useState(initialFiles);
-
-  const [links, setLinks] =
-    useState(initialLinks);
-
-  const [taskModal, setTaskModal] =
-    useState(false);
-
-  const [fileModal, setFileModal] =
-    useState(null);
-
-  const [linkModal, setLinkModal] =
-    useState(false);
-  const [editorFile, setEditorFile] =
-    useState(null);
-
-  const [errorFile, setErrorFile] =
-    useState(null);
-  const isAdmin =
-    currentMember.role === "admin";
-  const isClosed =
-    project.status === "closed";
-  const canEditResources =
-    !isClosed &&
-    ["admin", "editor"].includes(
-      currentMember.role
-    );
+  const isAdmin = currentMember.role === "admin";
+  const isClosed = project.status === "closed";
+  const canEditResources = !isClosed && ["admin", "editor"].includes(currentMember.role);
 
   const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((task) => task.status === "completed").length;
+  const pendingTasks = tasks.filter((task) => task.status !== "completed").length;
 
-  const completedTasks =
-    tasks.filter(
-      (task) =>
-        task.status === "completed"
-    ).length;
-
-  const pendingTasks =
-    tasks.filter(
-      (task) =>
-        task.status !== "completed"
-    ).length;
-
-  async function refresh() {
-    router.refresh();
-  }
-
-  async function updateTask(
-    taskId,
-    update
-  ) {
-    const res = await fetch(
-      `/api/projects/${project._id}/tasks/${taskId}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(update),
-      }
-    );
+  async function updateTask(taskId, update) {
+    const res = await fetch(`/api/projects/${project._id}/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    });
 
     const data = await res.json();
-
     if (!res.ok) {
-      toast.error(
-        data.error || "Update failed"
-      );
+      toast.error(data.error || "Update failed");
       return;
     }
 
     setTasks((prev) =>
-      prev.map((task) =>
-        String(task._id) ===
-          String(taskId)
-          ? data.task
-          : task
-      )
+      prev.map((task) => (String(task._id) === String(taskId) ? data.task : task))
     );
   }
 
   const EDITABLE_EXTENSIONS = [
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "css",
-    "scss",
-    "sass",
-    "less",
-    "html",
-    "htm",
-    "json",
-    "md",
-    "txt",
-    "xml",
-    "yml",
-    "yaml",
-    "py",
-    "java",
-    "c",
-    "cpp",
-    "h",
-    "hpp",
-    "cs",
-    "php",
-    "sql",
-    "sh",
-    "bash",
-    "zsh",
-    "env",
-    "gitignore",
-    "vue",
-    "svelte",
-    "go",
-    "rs",
-    "rb",
-    "swift",
-    "kt",
+    "js", "jsx", "ts", "tsx", "css", "scss", "sass", "less", "html", "htm",
+    "json", "md", "txt", "xml", "yml", "yaml", "py", "java", "c", "cpp",
+    "h", "hpp", "cs", "php", "sql", "sh", "bash", "zsh", "env", "gitignore",
+    "vue", "svelte", "go", "rs", "rb", "swift", "kt",
   ];
 
   function isEditableFile(file) {
-    if (file.editable === true) {
-      return true;
-    }
-
-    const name =
-      file.name || "";
-
-    const cleanName =
-      name
-        .split("/")
-        .pop()
-        ?.toLowerCase() || "";
-
-    if (
-      cleanName === ".env" ||
-      cleanName === ".gitignore"
-    ) {
-      return true;
-    }
-
-    const extension =
-      cleanName
-        .split(".")
-        .pop();
-
-    return EDITABLE_EXTENSIONS.includes(
-      extension
-    );
+    if (file.editable === true) return true;
+    const name = file.name || "";
+    const cleanName = name.split("/").pop()?.toLowerCase() || "";
+    if (cleanName === ".env" || cleanName === ".gitignore") return true;
+    const extension = cleanName.split(".").pop();
+    return EDITABLE_EXTENSIONS.includes(extension);
   }
 
   function openFile(file) {
-    const canEdit =
-      ["admin", "editor"].includes(
-        currentMember.role
-      );
-
-    if (
-      canEdit &&
-      isEditableFile(file)
-    ) {
-      setEditorFile({
-        ...file,
-        editable: true,
-      });
-
+    const canEdit = ["admin", "editor"].includes(currentMember.role);
+    if (canEdit && isEditableFile(file)) {
+      setEditorFile({ ...file, editable: true });
       return;
     }
-
-    /*
-     * Viewer or non-text file:
-     * open normally.
-     */
-    window.open(
-      file.url,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    window.open(file.url, "_blank", "noopener,noreferrer");
   }
+
   async function deleteTask(taskId) {
-    if (
-      !confirm(
-        "Delete this task?"
-      )
-    ) {
-      return;
-    }
-
-    const res = await fetch(
-      `/api/projects/${project._id}/tasks/${taskId}`,
-      {
-        method: "DELETE",
-      }
-    );
-
+    if (!confirm("Delete this task?")) return;
+    const res = await fetch(`/api/projects/${project._id}/tasks/${taskId}`, {
+      method: "DELETE",
+    });
     const data = await res.json();
-
     if (!res.ok) {
-      toast.error(
-        data.error || "Delete failed"
-      );
+      toast.error(data.error || "Delete failed");
       return;
     }
-
-    setTasks((prev) =>
-      prev.filter(
-        (task) =>
-          String(task._id) !==
-          String(taskId)
-      )
-    );
-
+    setTasks((prev) => prev.filter((task) => String(task._id) !== String(taskId)));
     toast.success("Task deleted");
   }
 
   async function deleteFile(fileId) {
-    if (
-      !confirm(
-        "Delete this file?"
-      )
-    ) {
-      return;
-    }
-
-    const res = await fetch(
-      `/api/projects/${project._id}/files/${fileId}`,
-      {
-        method: "DELETE",
-      }
-    );
-
+    if (!confirm("Delete this file?")) return;
+    const res = await fetch(`/api/projects/${project._id}/files/${fileId}`, {
+      method: "DELETE",
+    });
     const data = await res.json();
-
     if (!res.ok) {
-      toast.error(
-        data.error || "Delete failed"
-      );
+      toast.error(data.error || "Delete failed");
       return;
     }
-
-    setFiles((prev) =>
-      prev.filter(
-        (file) =>
-          String(file._id) !==
-          String(fileId)
-      )
-    );
-
+    setFiles((prev) => prev.filter((file) => String(file._id) !== String(fileId)));
     toast.success("File deleted");
   }
 
   async function deleteLink(linkId) {
-    if (
-      !confirm(
-        "Delete this link?"
-      )
-    ) {
-      return;
-    }
-
-    const res = await fetch(
-      `/api/projects/${project._id}/links/${linkId}`,
-      {
-        method: "DELETE",
-      }
-    );
-
+    if (!confirm("Delete this link?")) return;
+    const res = await fetch(`/api/projects/${project._id}/links/${linkId}`, {
+      method: "DELETE",
+    });
     const data = await res.json();
-
     if (!res.ok) {
-      toast.error(
-        data.error || "Delete failed"
-      );
+      toast.error(data.error || "Delete failed");
       return;
     }
-
-    setLinks((prev) =>
-      prev.filter(
-        (link) =>
-          String(link._id) !==
-          String(linkId)
-      )
-    );
-
+    setLinks((prev) => prev.filter((link) => String(link._id) !== String(linkId)));
     toast.success("Link deleted");
   }
 
+  const tabList = [
+    { id: "overview", label: "Overview", icon: <ListTodo size={14} /> },
+    { id: "files", label: `Files (${files.length})`, icon: <FileText size={14} /> },
+    { id: "links", label: `Links (${links.length})`, icon: <Link2 size={14} /> },
+    { id: "ai", label: "AI Assistant", icon: <Sparkles size={14} /> },
+    { id: "members", label: `Members (${project.members?.length || 0})`, icon: <Users size={14} /> },
+    {
+      id: "otherInfo",
+      label: "Other Info",
+      icon: <Award size={14} />,
+      badge: (project.judges?.length || 0) + (project.certificates?.length || 0) + (project.moneyStatus?.ads?.length || 0),
+    },
+  ];
+
+  const topbarActions = (
+    <div className="flex items-center gap-2">
+      {isAdmin && (
+        <Link href={`/project/${project._id}/settings`}>
+          <Button variant="secondary" size="sm" className="gap-1.5">
+            <Settings size={14} />
+            <span className="hidden sm:inline">Settings</span>
+          </Button>
+        </Link>
+      )}
+
+      {isAdmin && !isClosed && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            if (!window.confirm("Are you sure you want to FIX & CLOSE this project?")) return;
+            try {
+              const res = await fetch(`/api/projects/${project._id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "closed" }),
+              });
+              if (!res.ok) throw new Error("Could not close project");
+              toast.success("Project fixed and closed");
+              router.refresh();
+            } catch (err) {
+              toast.error(err.message);
+            }
+          }}
+          className="gap-1.5 text-[var(--color-accent-deep)] hover:text-[var(--color-accent-deep)] border-[var(--color-border)]"
+        >
+          <CheckCircle2 size={14} className="text-[var(--color-accent-deep)] shrink-0" />
+          <span className="hidden sm:inline font-bold">Fix & Close</span>
+        </Button>
+      )}
+    </div>
+  );
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
-      {/* NAVBAR */}
-
-      <nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600"
-          >
-            <ArrowLeft size={18} />
-
-            <span className="hidden sm:inline">
-              Dashboard
-            </span>
-
-            <span className="sm:hidden">
-              Back
-            </span>
-          </Link>
-
-          <Link
-            href="/dashboard"
-            className="text-xl font-bold text-slate-900 sm:text-2xl"
-          >
-            Project
-            <span className="text-blue-600">
-              Hub
-            </span>
-          </Link>
-
-          <button
-            onClick={() => {
-              setTab("otherInfo");
-              const el = document.getElementById("project-workspace-tabs");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:px-4 ${tab === "otherInfo"
-              ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-              : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
-              }`}
-          >
-            <Award size={16} />
-            <span className="hidden sm:inline">Other Info</span>
-            <span className="sm:hidden">Info</span>
-            {(project.judges?.length || 0) +
-              (project.certificates?.length || 0) +
-              (project.moneyStatus?.ads?.length || 0) >
-              0 && (
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[11px] font-bold ${tab === "otherInfo"
-                    ? "bg-white text-blue-700"
-                    : "bg-blue-100 text-blue-700"
-                    }`}
-                >
-                  {(project.judges?.length || 0) +
-                    (project.certificates?.length || 0) +
-                    (project.moneyStatus?.ads?.length || 0)}
+    <AppShell
+      projects={userProjects}
+      currentProjectId={project._id}
+      title={project.name}
+      topbarActions={topbarActions}
+    >
+      <div className="space-y-6">
+        {/* Project Banner Header */}
+        <Card className="p-6">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+            <div className="space-y-3 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-accent-deep)]">
+                  Project Workspace
                 </span>
-              )}
-          </button>
+                <Badge role={currentMember.role} />
+                {isClosed && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-heading font-bold bg-[var(--color-accent)]/15 dark:bg-[var(--color-surface-muted)] text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 dark:border-[var(--color-border)]">
+                    <CheckCircle2 size={11} className="text-[var(--color-accent-deep)] shrink-0" />
+                    <span>Fixed & Closed</span>
+                  </span>
+                )}
+              </div>
 
-          {isAdmin ? (
-            <Link
-              href={`/project/${project._id}/settings`}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 sm:px-4"
-            >
-              <Settings size={16} />
-
-              <span className="hidden sm:inline">
-                Settings
-              </span>
-            </Link>
-          ) : (
-            <div className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold capitalize text-blue-700">
-              {currentMember.role}
-            </div>
-          )}
-          {isAdmin && !isClosed && (
-            <button
-              onClick={async () => {
-                const confirmed =
-                  window.confirm(
-                    "Are you sure you want to FIX & CLOSE this project?\n\nAfter closing, editors will no longer be able to upload, edit, delete or add anything."
-                  );
-
-                if (!confirmed) {
-                  return;
-                }
-
-                try {
-                  const res =
-                    await fetch(
-                      `/api/projects/${project._id}/status`,
-                      {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type":
-                            "application/json",
-                        },
-                        body: JSON.stringify({
-                          status:
-                            "closed",
-                        }),
-                      }
-                    );
-
-                  const data =
-                    await res.json();
-
-                  if (!res.ok) {
-                    throw new Error(
-                      data.error ||
-                      "Could not close project"
-                    );
-                  }
-
-                  toast.success(
-                    "Project fixed and closed"
-                  );
-
-                  router.refresh();
-                } catch (error) {
-                  toast.error(
-                    error.message
-                  );
-                }
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              <CheckCircle2
-                size={16}
-              />
-              Fix & Close Project
-            </button>
-          )}
-        </div>
-      </nav>
-
-      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10">
-        {/* HEADER */}
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
-                Project
-              </p>
-
-              <h1 className="mt-2 break-words text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <h1 className="text-2xl sm:text-3xl font-heading font-bold text-[var(--color-ink)] tracking-tight">
                 {project.name}
               </h1>
 
-              <p className="mt-3 max-w-3xl break-words text-sm leading-7 text-slate-600 sm:text-base">
-                {project.description ||
-                  "No project description has been added yet."}
+              <p className="font-body text-xs sm:text-sm text-[var(--color-ink-muted)] leading-relaxed max-w-3xl">
+                {project.description || "No description provided for this project."}
               </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
-                {project.event && (
-                  <Info
-                    label="Event"
-                    value={project.event}
-                  />
-                )}
-
-                {project.institution && (
-                  <Info
-                    label="Institution"
-                    value={project.institution}
-                  />
-                )}
-
-                {project.prizeMoney && (
-                  <Info
-                    label="Prize Money"
-                    value={project.prizeMoney}
-                  />
-                )}
-
+              {/* Metadata Pills */}
+              <div className="flex items-center gap-3 flex-wrap pt-1">
                 {project.deployedUrl && (
-                  <div className="rounded-2xl bg-emerald-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
-                      Deployment
-                    </p>
-
-                    <a
-                      href={project.deployedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 break-all font-semibold text-emerald-700 hover:underline"
-                    >
-                      Open live project →
-                    </a>
-                  </div>
+                  <a
+                    href={project.deployedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-heading font-medium bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/30 transition"
+                  >
+                    <span>Live Demo</span>
+                    <ExternalLink size={12} />
+                  </a>
                 )}
-
+                {project.event && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-body bg-[var(--color-surface-muted)] text-[var(--color-ink)] border border-[var(--color-border)]">
+                    <Trophy size={12} className="text-[var(--color-accent-deep)]" />
+                    <span>{project.event}</span>
+                  </span>
+                )}
+                {project.institution && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-body bg-[var(--color-surface-muted)] text-[var(--color-ink)] border border-[var(--color-border)]">
+                    <Building size={12} className="text-[var(--color-ink-muted)]" />
+                    <span>{project.institution}</span>
+                  </span>
+                )}
               </div>
-              <p className="mt-5 text-sm text-slate-500">
-                Admin:{" "}
-                <span className="font-semibold text-slate-800">
-                  {
-                    project.members.find(
-                      (member) =>
-                        member.role ===
-                        "admin"
-                    )?.user?.name ||
-                    project.createdBy?.name ||
-                    "Unknown"
-                  }
+            </div>
+
+            {/* Quick Actions */}
+            {canEditResources && (
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <Button size="sm" variant="primary" onClick={() => setFileModal("upload")}>
+                  + Upload File
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setLinkModal(true)}>
+                  + Add Link
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Tab Navigation */}
+        <div id="project-workspace-tabs" className="flex items-center gap-1.5 border-b border-[var(--color-border)] pb-2 overflow-x-auto">
+          {tabList.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-heading whitespace-nowrap transition ${
+                tab === t.id
+                  ? "bg-[var(--color-accent)] text-[#0B0B0A] font-bold shadow-xs"
+                  : "font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
+              }`}
+            >
+              {t.icon}
+              <span>{t.label}</span>
+              {t.badge > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  tab === t.id ? "bg-[#0B0B0A] text-[var(--color-accent)]" : "bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)]"
+                }`}>
+                  {t.badge}
                 </span>
-              </p>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENTS */}
+
+        {/* 1. OVERVIEW TAB */}
+        {tab === "overview" && (
+          <div className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card className="p-4">
+                <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Total Tasks
+                </p>
+                <p className="text-2xl font-heading font-bold text-[var(--color-ink)] mt-1">{totalTasks}</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Completed
+                </p>
+                <p className="text-2xl font-heading font-bold text-[var(--color-accent-deep)] mt-1">{completedTasks}</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Pending
+                </p>
+                <p className="text-2xl font-heading font-bold text-[var(--color-warning)] mt-1">{pendingTasks}</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Total Files
+                </p>
+                <p className="text-2xl font-heading font-bold text-[var(--color-ink)] mt-1">{files.length}</p>
+              </Card>
             </div>
-          </div>
-        </section>
-        {isClosed && (
-          <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2
-                size={21}
-                className="mt-0.5 shrink-0 text-green-600"
-              />
 
-              <div>
-                <p className="font-bold text-green-800">
-                  Project Fixed & Closed
-                </p>
-
-                <p className="mt-1 text-sm text-green-700">
-                  This project has been finalized.
-                  Editors can no longer modify files,
-                  links, or team members.
-                </p>
+            {/* Task Section */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Project Tasks</h3>
+                {canEditResources && (
+                  <Button size="sm" variant="primary" onClick={() => setTaskModal(true)}>
+                    + Add Task
+                  </Button>
+                )}
               </div>
-            </div>
-          </div>
-        )}
-        {isAdmin && isClosed && (
-          <button
-            onClick={async () => {
-              const confirmed =
-                window.confirm(
-                  "Reopen this project? Editors will be allowed to make changes again."
-                );
 
-              if (!confirmed) {
-                return;
-              }
+              {tasks.length === 0 ? (
+                <p className="text-xs font-body text-[var(--color-ink-muted)] py-4 text-center">No tasks added yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.map((task) => (
+                    <div
+                      key={task._id}
+                      className="flex items-center justify-between p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={task.status === "completed"}
+                          onChange={() =>
+                            updateTask(task._id, {
+                              status: task.status === "completed" ? "pending" : "completed",
+                            })
+                          }
+                          disabled={!canEditResources}
+                          className="rounded border-[var(--color-border)] accent-[var(--color-accent-deep)] w-4 h-4 cursor-pointer"
+                        />
+                        <span
+                          className={`font-heading font-medium ${
+                            task.status === "completed" ? "line-through text-[var(--color-ink-soft)]" : "text-[var(--color-ink)]"
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                      </div>
 
-              try {
-                const res =
-                  await fetch(
-                    `/api/projects/${project._id}/status`,
-                    {
-                      method: "PATCH",
-                      headers: {
-                        "Content-Type":
-                          "application/json",
-                      },
-                      body: JSON.stringify({
-                        status:
-                          "open",
-                      }),
-                    }
-                  );
-
-                const data =
-                  await res.json();
-
-                if (!res.ok) {
-                  throw new Error(
-                    data.error ||
-                    "Could not reopen project"
-                  );
-                }
-
-                toast.success(
-                  "Project reopened"
-                );
-
-                router.refresh();
-              } catch (error) {
-                toast.error(
-                  error.message
-                );
-              }
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-50"
-          >
-            Reopen Project
-          </button>
-        )}
-        {/* TASK STATS */}
-
-        <section className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <TaskStat
-            icon={
-              <ListTodo size={20} />
-            }
-            label="Tasks"
-            value={totalTasks}
-          />
-
-          <TaskStat
-            icon={
-              <CheckCircle2 size={20} />
-            }
-            label="Completed"
-            value={completedTasks}
-          />
-
-          <TaskStat
-            icon={<Clock3 size={20} />}
-            label="Pending"
-            value={pendingTasks}
-          />
-        </section>
-
-        {/* TASKS */}
-
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Tasks
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Track work, deadlines and priorities.
-              </p>
-            </div>
-
-            {isAdmin && (
-              <button
-                onClick={() =>
-                  setTaskModal(true)
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                <Plus size={17} />
-                Create Task
-              </button>
-            )}
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {tasks.length === 0 ? (
-              <div className="p-10 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                  <ListTodo size={25} />
+                      {canEditResources && (
+                        <button
+                          onClick={() => deleteTask(task._id)}
+                          className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-
-                <h3 className="mt-4 font-bold text-slate-900">
-                  No tasks yet
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Create your first task for this project.
-                </p>
-              </div>
-            ) : (
-              tasks.map((task) => (
-                <TaskRow
-                  key={task._id}
-                  task={task}
-                  isAdmin={isAdmin}
-                  onStatusChange={(status) =>
-                    updateTask(
-                      task._id,
-                      { status }
-                    )
-                  }
-                  onPriority={() =>
-                    updateTask(
-                      task._id,
-                      {
-                        priority:
-                          !task.priority,
-                      }
-                    )
-                  }
-                  onDelete={() =>
-                    deleteTask(task._id)
-                  }
-                />
-              ))
-            )}
+              )}
+            </Card>
           </div>
-        </section>
+        )}
 
-        {/* TABS */}
-
-        <section id="project-workspace-tabs" className="mt-8">
-          <div className="overflow-x-auto pb-1">
-            <div className="flex min-w-max gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-              <Tab
-                active={
-                  tab === "overview"
-                }
-                onClick={() =>
-                  setTab("overview")
-                }
-                icon={
-                  <FileText size={17} />
-                }
-                label="Overview"
-              />
-
-              <Tab
-                active={
-                  tab === "files"
-                }
-                onClick={() =>
-                  setTab("files")
-                }
-                icon={
-                  <FileText size={17} />
-                }
-                label={`Files (${files.length})`}
-              />
-
-              <Tab
-                active={
-                  tab === "links"
-                }
-                onClick={() =>
-                  setTab("links")
-                }
-                icon={
-                  <Link2 size={17} />
-                }
-                label={`Links (${links.length})`}
-              />
-
-              <Tab
-                active={
-                  tab === "team"
-                }
-                onClick={() =>
-                  setTab("team")
-                }
-                icon={
-                  <Users size={17} />
-                }
-                label={`Team (${project.members.length})`}
-              />
-
-              <Tab
-                active={
-                  tab === "otherInfo"
-                }
-                onClick={() =>
-                  setTab("otherInfo")
-                }
-                icon={
-                  <Award size={17} />
-                }
-                label={`Other Info (${(project.judges?.length || 0) +
-                  (project.certificates?.length || 0) +
-                  (project.moneyStatus?.ads?.length || 0)
-                  })`}
-              />
+        {/* 2. FILES TAB */}
+        {tab === "files" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Project Files</h3>
+              {canEditResources && (
+                <Button size="sm" variant="primary" onClick={() => setFileModal("upload")}>
+                  + Upload File
+                </Button>
+              )}
             </div>
+
+            <FileTree files={files} onOpenFile={openFile} onDeleteFile={deleteFile} canEdit={canEditResources} />
           </div>
+        )}
 
-          <div className="mt-5">
-            {tab === "overview" && (
-              <Overview
-                project={project}
-                tasks={tasks}
-                files={files}
-                links={links}
-                onSelectTab={setTab}
-              />
-            )}
+        {/* 3. LINKS TAB */}
+        {tab === "links" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Saved Links</h3>
+              {canEditResources && (
+                <Button size="sm" variant="primary" onClick={() => setLinkModal(true)}>
+                  + Add Link
+                </Button>
+              )}
+            </div>
 
-            {tab === "files" && (
-              <FilesTab
-                files={files}
-                isAdmin={isAdmin}
-                canEditResources={
-                  canEditResources
-                }
-                onUpload={() =>
-                  setFileModal("create")
-                }
-                onEdit={openFile}
-                onDelete={deleteFile}
-                onMarkError={(file) =>
-                  setErrorFile(file)
-                }
-              />
-            )}
+            {links.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-xs font-body text-[var(--color-ink-muted)]">No links added yet.</p>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {links.map((l) => (
+                  <Card key={l._id} className="p-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <a
+                        href={l.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-heading font-semibold text-sm text-[var(--color-ink)] hover:text-[var(--color-accent-deep)] truncate flex items-center gap-1.5"
+                      >
+                        <span className="truncate">{l.title || l.url}</span>
+                        <ExternalLink size={12} className="shrink-0" />
+                      </a>
+                      {l.description && (
+                        <p className="text-xs font-body text-[var(--color-ink-muted)] truncate mt-0.5">{l.description}</p>
+                      )}
+                    </div>
 
-            {tab === "links" && (
-              <LinksTab
-                links={links}
-                canEditResources={
-                  canEditResources
-                }
-                onCreate={() =>
-                  setLinkModal(true)
-                }
-                onDelete={deleteLink}
-              />
-            )}
-
-            {tab === "team" && (
-              <TeamTab
-                members={project.members}
-              />
-            )}
-
-            {tab === "otherInfo" && (
-              <OtherInfoTab
-                project={project}
-                canEditResources={canEditResources}
-                isAdmin={isAdmin}
-                onProjectUpdated={refresh}
-              />
+                    {canEditResources && (
+                      <button
+                        onClick={() => deleteLink(l._id)}
+                        className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 shrink-0 transition"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
-        </section>
+        )}
+
+        {/* 4. AI ASSISTANT TAB */}
+        {tab === "ai" && (
+          <Card className="p-6">
+            <ProjectAI project={project} />
+          </Card>
+        )}
+
+        {/* 5. MEMBERS TAB */}
+        {tab === "members" && (
+          <Card className="p-6 space-y-4">
+            <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Team Members</h3>
+            <div className="space-y-3">
+              {project.members?.map((m) => (
+                <div
+                  key={m.user?._id || m._id}
+                  className="flex items-center justify-between p-3 rounded-[12px] bg-[var(--color-surface-muted)] border border-[var(--color-border)]"
+                >
+                  <div className="flex items-center gap-3">
+                    {m.user?.image ? (
+                      <img src={m.user.image} alt={m.user.name} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] text-[#0B0B0A] font-heading font-bold text-xs flex items-center justify-center">
+                        {(m.user?.name || "U")[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-heading font-semibold text-xs text-[var(--color-ink)]">{m.user?.name}</p>
+                      <p className="font-body text-[11px] text-[var(--color-ink-muted)]">{m.user?.email}</p>
+                    </div>
+                  </div>
+
+                  <Badge role={m.role} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* 6. OTHER INFO TAB */}
+        {tab === "otherInfo" && (
+          <Card className="p-6">
+            <OtherInfoTab project={project} isAdmin={isAdmin} />
+          </Card>
+        )}
       </div>
 
+      {/* Modals */}
       {taskModal && (
         <CreateTaskModal
           project={project}
-          onClose={() =>
-            setTaskModal(false)
-          }
-          onCreated={(task) => {
-            setTasks((prev) => [
-              task,
-              ...prev,
-            ]);
-
-            setTaskModal(false);
-            toast.success(
-              "Task created"
-            );
-          }}
+          onClose={() => setTaskModal(false)}
+          onTaskCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
         />
       )}
 
-      {fileModal && (
+      {fileModal === "upload" && (
         <FileModal
           project={project}
-          file={
-            fileModal === "create"
-              ? null
-              : fileModal
-          }
-          onClose={() =>
-            setFileModal(null)
-          }
-          onCreated={(file) => {
-            setFiles((prev) => [
-              file,
-              ...prev,
-            ]);
-
-            setFileModal(null);
-            toast.success(
-              "File uploaded"
-            );
-          }}
-          onUpdated={(file) => {
-            setFiles((prev) =>
-              prev.map((item) =>
-                String(item._id) ===
-                  String(file._id)
-                  ? file
-                  : item
-              )
-            );
-
-            setFileModal(null);
-            toast.success(
-              "File updated"
-            );
-          }}
+          onClose={() => setFileModal(null)}
+          onFileUploaded={(newFile) => setFiles((prev) => [newFile, ...prev])}
         />
       )}
 
       {linkModal && (
         <LinkModal
           project={project}
-          onClose={() =>
-            setLinkModal(false)
-          }
-          onCreated={(link) => {
-            setLinks((prev) => [
-              link,
-              ...prev,
-            ]);
-
-            setLinkModal(false);
-            toast.success(
-              "Link added"
-            );
-          }}
+          onClose={() => setLinkModal(false)}
+          onLinkAdded={(newLink) => setLinks((prev) => [newLink, ...prev])}
         />
       )}
+
       {editorFile && (
         <FileEditorModal
-          key={editorFile._id}
-          project={project}
           file={editorFile}
-          onClose={() =>
-            setEditorFile(null)
+          project={project}
+          onClose={() => setEditorFile(null)}
+          onSaved={(updated) =>
+            setFiles((prev) => prev.map((f) => (String(f._id) === String(updated._id) ? updated : f)))
           }
-          onUpdated={(
-            updatedFile,
-            options = {}
-          ) => {
-            setFiles((prev) =>
-              prev.map((item) =>
-                String(item._id) ===
-                  String(updatedFile._id)
-                  ? updatedFile
-                  : item
-              )
-            );
-
-            setEditorFile(
-              updatedFile
-            );
-
-            if (!options.keepOpen) {
-              setEditorFile(null);
-
-              toast.success(
-                "File saved successfully"
-              );
-            } else {
-              toast.success(
-                "Error marked"
-              );
-            }
-          }}
         />
       )}
 
       {errorFile && (
         <MarkErrorModal
-          project={project}
           file={errorFile}
-          onClose={() =>
-            setErrorFile(null)
+          project={project}
+          onClose={() => setErrorFile(null)}
+          onSaved={(updated) =>
+            setFiles((prev) => prev.map((f) => (String(f._id) === String(updated._id) ? updated : f)))
           }
-          onUpdated={(updatedFile) => {
-            setFiles((prev) =>
-              prev.map((item) =>
-                String(item._id) ===
-                  String(updatedFile._id)
-                  ? updatedFile
-                  : item
-              )
-            );
-
-            toast.success(
-              "Error marked"
-            );
-          }}
         />
       )}
-      <ProjectAI
-        projectId={project._id.toString()}
-      />
-    </main>
-  );
-}
-
-function TaskStat({
-  icon,
-  label,
-  value,
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-          {icon}
-        </div>
-
-        <span className="text-2xl font-bold text-slate-900">
-          {value}
-        </span>
-      </div>
-
-      <p className="mt-4 text-sm font-semibold text-slate-700">
-        {label}
-      </p>
-    </div>
-  );
-}
-
-function TaskRow({
-  task,
-  isAdmin,
-  onStatusChange,
-  onPriority,
-  onDelete,
-}) {
-  const assignee =
-    task.assignees?.[0];
-
-  return (
-    <div className="p-5 sm:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300">
-            {task.status ===
-              "completed" && (
-                <CheckCircle2
-                  size={14}
-                  className="text-green-600"
-                />
-              )}
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3
-                className={`break-words font-semibold ${task.status ===
-                  "completed"
-                  ? "text-slate-400 line-through"
-                  : "text-slate-900"
-                  }`}
-              >
-                {task.title}
-              </h3>
-
-              {task.priority && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
-                  <Star
-                    size={11}
-                    fill="currentColor"
-                  />
-                  Priority
-                </span>
-              )}
-            </div>
-
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-              <span>
-                {assignee?.name ||
-                  "Unassigned"}
-              </span>
-
-              {task.deadlineDate && (
-                <span>
-                  Due{" "}
-                  {task.deadlineDate}
-                  {task.deadlineTime
-                    ? ` · ${task.deadlineTime}`
-                    : ""}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <>
-              <select
-                value={task.status}
-                onChange={(e) =>
-                  onStatusChange(
-                    e.target.value
-                  )
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-blue-500"
-              >
-                <option value="todo">
-                  To-do
-                </option>
-                <option value="in_progress">
-                  In Progress
-                </option>
-                <option value="pending">
-                  Pending
-                </option>
-                <option value="completed">
-                  Completed
-                </option>
-              </select>
-
-              <button
-                onClick={onPriority}
-                title="Toggle priority"
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
-              >
-                <Star
-                  size={16}
-                  fill={
-                    task.priority
-                      ? "currentColor"
-                      : "none"
-                  }
-                />
-              </button>
-
-              <button
-                onClick={onDelete}
-                className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
-              >
-                <Trash2
-                  size={16}
-                />
-              </button>
-            </>
-          ) : (
-            <StatusBadge
-              status={task.status}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({
-  status,
-}) {
-  const labels = {
-    todo: "To-do",
-    in_progress: "In Progress",
-    pending: "Pending",
-    completed: "Completed",
-  };
-
-  return (
-    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-      {labels[status] ||
-        status}
-    </span>
-  );
-}
-
-function Tab({
-  active,
-  onClick,
-  icon,
-  label,
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${active
-        ? "bg-blue-600 text-white"
-        : "text-slate-600 hover:bg-slate-100"
-        }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function Overview({
-  project,
-  tasks,
-  files,
-  links,
-  onSelectTab,
-}) {
-  const judgesCount = project.judges?.length || 0;
-  const certsCount = project.certificates?.length || 0;
-  const currency = project.moneyStatus?.currency || "$";
-  const prizeMoney = Number(project.moneyStatus?.prizeMoney || 0);
-
-  return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">
-            Project Overview
-          </h2>
-          {onSelectTab && (
-            <button
-              onClick={() => onSelectTab("otherInfo")}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
-            >
-              <Award size={13} />
-              View Other Info →
-            </button>
-          )}
-        </div>
-
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          {project.description ||
-            "No description available."}
-        </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Info
-            label="Created By"
-            value={
-              project.createdBy
-                ?.name || "Unknown"
-            }
-          />
-
-          <Info
-            label="Members"
-            value={
-              project.members.length
-            }
-          />
-
-          <Info
-            label="Files & Links"
-            value={`${files.length} files · ${links.length} links`}
-          />
-
-          <Info
-            label="Judges"
-            value={`${judgesCount} evaluator${judgesCount === 1 ? "" : "s"}`}
-          />
-
-          <Info
-            label="Certificates"
-            value={`${certsCount} stored`}
-          />
-
-          <Info
-            label="Prize / Grant"
-            value={`${currency}${prizeMoney.toLocaleString()}`}
-          />
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="font-bold text-slate-900">
-          Task Progress
-        </h2>
-
-        <div className="mt-6">
-          <div className="flex items-end justify-between">
-            <span className="text-sm text-slate-500">
-              Completed
-            </span>
-
-            <span className="font-bold text-slate-900">
-              {
-                tasks.filter(
-                  (task) =>
-                    task.status ===
-                    "completed"
-                ).length
-              }
-              /{tasks.length}
-            </span>
-          </div>
-
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-blue-600"
-              style={{
-                width: `${tasks.length
-                  ? (tasks.filter(
-                    (task) =>
-                      task.status ===
-                      "completed"
-                  ).length /
-                    tasks.length) *
-                  100
-                  : 0
-                  }%`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Info({
-  label,
-  value,
-}) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-2 break-words font-semibold text-slate-800">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function FilesTab({
-  files,
-  isAdmin,
-  canEditResources,
-  onUpload,
-  onEdit,
-  onDelete,
-  onMarkError,
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            Project Files
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Browse, edit, review and manage project files.
-          </p>
-        </div>
-
-        {canEditResources && (
-          <button
-            onClick={onUpload}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            <Plus size={17} />
-            Upload
-          </button>
-        )}
-      </div>
-
-      <div className="mt-6">
-        {files.length === 0 ? (
-          <Empty
-            icon={<FileText size={24} />}
-            text="No files yet"
-          />
-        ) : (
-          <FileTree
-            files={files}
-            onOpenFile={(file) =>
-              onEdit(file)
-            }
-            onMarkError={onMarkError}
-            canMarkErrors={canEditResources}
-          />
-        )}
-      </div>
-
-      {/* ERROR FILE LIST */}
-
-      {files.some(
-        (file) => file.hasError
-      ) && (
-          <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4">
-            <p className="font-bold text-red-700">
-              Files requiring attention
-            </p>
-
-            <div className="mt-3 space-y-2">
-              {files
-                .filter(
-                  (file) =>
-                    file.hasError
-                )
-                .map((file) => (
-                  <div
-                    key={file._id}
-                    className="flex flex-col gap-2 rounded-xl bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="font-semibold text-slate-800">
-                        {file.path ||
-                          file.name}
-                      </p>
-
-                      {(file.errorStartLine ||
-                        file.errorEndLine) && (
-                          <p className="text-xs font-semibold text-red-500">
-                            Lines{" "}
-                            {file.errorStartLine || "?"}
-                            {file.errorEndLine &&
-                              file.errorEndLine !==
-                              file.errorStartLine
-                              ? ` – ${file.errorEndLine}`
-                              : ""}
-                          </p>
-                        )}
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {
-                          file.errorDescription
-                        }
-                      </p>
-                    </div>
-
-                    {canEditResources && (
-                      <button
-                        onClick={() =>
-                          onMarkError(
-                            file
-                          )
-                        }
-                        className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
-                      >
-                        Update Error
-                      </button>
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-    </div>
-  );
-}
-
-function LinksTab({
-  links,
-  canEditResources,
-  onCreate,
-  onDelete,
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            Links
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Important URLs for the project.
-          </p>
-        </div>
-
-        {canEditResources && (
-          <button
-            onClick={onCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            <Plus size={17} />
-            Add Link
-          </button>
-        )}
-      </div>
-
-      <div className="mt-6 grid gap-3">
-        {links.length === 0 ? (
-          <Empty
-            icon={<Link2 size={24} />}
-            text="No links yet"
-          />
-        ) : (
-          links.map((link) => (
-            <div
-              key={link._id}
-              className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex min-w-0 gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <Link2
-                    size={20}
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <h3 className="break-words font-semibold text-slate-900">
-                    {link.title}
-                  </h3>
-
-                  {link.description && (
-                    <p className="mt-1 break-words text-sm text-slate-500">
-                      {link.description}
-                    </p>
-                  )}
-
-                  <p className="mt-1 break-all text-xs text-blue-600">
-                    {link.url}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 gap-2">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  <ExternalLink
-                    size={14}
-                  />
-                  Open
-                </a>
-
-                {canEditResources && (
-                  <button
-                    onClick={() =>
-                      onDelete(
-                        link._id
-                      )
-                    }
-                    className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
-                  >
-                    <Trash2
-                      size={15}
-                    />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TeamTab({
-  members,
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-bold text-slate-900">
-        Team
-      </h2>
-
-      <p className="mt-1 text-sm text-slate-500">
-        Everyone who has access to this project.
-      </p>
-
-      <div className="mt-6 grid gap-3 md:grid-cols-2">
-        {members.map((member) => (
-          <div
-            key={member.user._id}
-            className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              {member.user.image ? (
-                <img
-                  src={member.user.image}
-                  alt=""
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                  {member.user.name
-                    ?.charAt(0)
-                    ?.toUpperCase() ||
-                    "U"}
-                </div>
-              )}
-
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-800">
-                  {member.user.name}
-                </p>
-
-                <p className="truncate text-xs text-slate-400">
-                  {member.user.email}
-                </p>
-              </div>
-            </div>
-
-            <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-600">
-              {member.role}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Empty({
-  icon,
-  text,
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-        {icon}
-      </div>
-
-      <p className="mt-3 text-sm font-semibold text-slate-500">
-        {text}
-      </p>
-    </div>
+    </AppShell>
   );
 }

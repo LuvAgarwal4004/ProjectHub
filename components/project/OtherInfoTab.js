@@ -28,6 +28,9 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import JudgeModal from "./JudgeModal";
 import CertificateModal from "./CertificateModal";
 import MoneyStatusModal from "./MoneyStatusModal";
@@ -144,7 +147,7 @@ export default function OtherInfoTab({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-body">
       {/* ========================================================= */}
       {/* SUMMARY TOP BAR */}
       {/* ========================================================= */}
@@ -154,20 +157,22 @@ export default function OtherInfoTab({
           onClick={() => setActiveSubTab("judges")}
           className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
             activeSubTab === "judges"
-              ? "border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
+              : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               <Award size={22} />
             </div>
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+            <span className="rounded-full bg-[var(--color-accent)]/20 px-2.5 py-1 text-xs font-heading font-bold text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               {judges.length} {judges.length === 1 ? "Judge" : "Judges"}
             </span>
           </div>
-          <h3 className="mt-4 font-bold text-slate-900">Judges & Evaluation</h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <h3 className="mt-4 font-heading font-bold text-base text-[var(--color-ink)]">
+            Judges & Evaluation
+          </h3>
+          <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
             Jury members, scoring, mentors & feedback
           </p>
         </div>
@@ -177,21 +182,23 @@ export default function OtherInfoTab({
           onClick={() => setActiveSubTab("certificates")}
           className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
             activeSubTab === "certificates"
-              ? "border-emerald-500 bg-emerald-50/50 shadow-md ring-2 ring-emerald-500/20"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
+              : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               <FileCheck size={22} />
             </div>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+            <span className="rounded-full bg-[var(--color-accent)]/20 px-2.5 py-1 text-xs font-heading font-bold text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               {certificates.length}{" "}
               {certificates.length === 1 ? "Certificate" : "Certificates"}
             </span>
           </div>
-          <h3 className="mt-4 font-bold text-slate-900">Certificate Store</h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <h3 className="mt-4 font-heading font-bold text-base text-[var(--color-ink)]">
+            Certificate Store
+          </h3>
+          <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
             Stored credentials, winner awards & verification links
           </p>
         </div>
@@ -201,21 +208,23 @@ export default function OtherInfoTab({
           onClick={() => setActiveSubTab("money")}
           className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
             activeSubTab === "money"
-              ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
+              : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               <Wallet size={22} />
             </div>
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
+            <span className="rounded-full bg-[var(--color-accent)]/20 px-2.5 py-1 text-xs font-heading font-bold text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
               {currency}
               {prizeMoney.toLocaleString()} Prize
             </span>
           </div>
-          <h3 className="mt-4 font-bold text-slate-900">Money Status & Ads</h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <h3 className="mt-4 font-heading font-bold text-base text-[var(--color-ink)]">
+            Money Status & Ads
+          </h3>
+          <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
             Prize disbursements, sponsorships & ad revenue
           </p>
         </div>
@@ -224,41 +233,41 @@ export default function OtherInfoTab({
       {/* ========================================================= */}
       {/* SUB-NAVIGATION BAR */}
       {/* ========================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-xs">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setActiveSubTab("judges")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
               activeSubTab === "judges"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-100"
+                ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
+                : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
             }`}
           >
-            <Award size={16} />
+            <Award size={15} />
             Judges ({judges.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab("certificates")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
               activeSubTab === "certificates"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-100"
+                ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
+                : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
             }`}
           >
-            <FileCheck size={16} />
-            Certificate Store ({certificates.length})
+            <FileCheck size={15} />
+            Certificates ({certificates.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab("money")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
               activeSubTab === "money"
-                ? "bg-amber-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-100"
+                ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
+                : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
             }`}
           >
-            <Wallet size={16} />
+            <Wallet size={15} />
             Money Status & Ads
           </button>
         </div>
@@ -267,41 +276,41 @@ export default function OtherInfoTab({
         {canEditResources && (
           <div>
             {activeSubTab === "judges" && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setJudgeModalState("create")}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700"
               >
-                <Plus size={15} />
-                Add Judge
-              </button>
+                <Plus size={14} /> Add Judge
+              </Button>
             )}
 
             {activeSubTab === "certificates" && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setCertModalState("create")}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
-                <Plus size={15} />
-                Add Certificate
-              </button>
+                <Plus size={14} /> Add Certificate
+              </Button>
             )}
 
             {activeSubTab === "money" && (
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setMoneyModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
                 >
-                  <Pencil size={13} />
-                  Edit Financials
-                </button>
-                <button
+                  <Pencil size={14} /> Update Payout
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setAdModalState("create")}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-purple-700"
                 >
-                  <Plus size={15} />
-                  Add Sponsor / Ad
-                </button>
+                  <Plus size={14} /> Add Sponsor / Ad
+                </Button>
               </div>
             )}
           </div>
@@ -312,44 +321,48 @@ export default function OtherInfoTab({
       {/* SECTION 1: JUDGES & EVALUATION */}
       {/* ========================================================= */}
       {activeSubTab === "judges" && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xs">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-xl font-heading font-bold text-[var(--color-ink)]">
                 Judges & Evaluation Panel
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                 Competition evaluators, reviewers, feedback, and scorecards.
               </p>
             </div>
             {canEditResources && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setJudgeModalState("create")}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
               >
-                <Plus size={16} />
-                Add Judge
-              </button>
+                <Plus size={15} /> Add Judge
+              </Button>
             )}
           </div>
 
           {judges.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-slate-200 p-12 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <div className="mt-8 rounded-2xl border border-dashed border-[var(--color-border)] p-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
                 <Award size={28} />
               </div>
-              <h3 className="mt-4 font-bold text-slate-900">No Judges Added Yet</h3>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+              <h3 className="mt-4 font-heading font-bold text-[var(--color-ink)]">
+                No Judges Added Yet
+              </h3>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--color-ink-muted)]">
                 Keep track of hackathon judges, mentors, their ratings, and critique.
               </p>
               {canEditResources && (
-                <button
-                  onClick={() => setJudgeModalState("create")}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  <Plus size={16} />
-                  Add First Judge
-                </button>
+                <div className="mt-5">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setJudgeModalState("create")}
+                  >
+                    <Plus size={15} /> Add First Judge
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
@@ -357,21 +370,21 @@ export default function OtherInfoTab({
               {judges.map((judge) => (
                 <div
                   key={judge._id}
-                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/40 p-5 transition hover:border-blue-200 hover:bg-white hover:shadow-md"
+                  className="flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/50 p-5 transition hover:border-[var(--color-accent-deep)] hover:bg-[var(--color-surface)] hover:shadow-xs"
                 >
                   <div>
                     {/* Top Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 font-bold text-white shadow-sm">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[#0B0B0A] font-heading font-bold shadow-xs">
                           {judge.name?.charAt(0)?.toUpperCase() || "J"}
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-900">
+                          <h4 className="font-heading font-bold text-sm text-[var(--color-ink)]">
                             {judge.name}
                           </h4>
                           {judge.designation && (
-                            <p className="text-xs font-medium text-slate-600">
+                            <p className="text-xs font-body text-[var(--color-ink-muted)]">
                               {judge.designation}
                             </p>
                           )}
@@ -379,7 +392,7 @@ export default function OtherInfoTab({
                       </div>
 
                       {judge.score && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 border border-amber-200/60">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)]/20 px-2.5 py-1 text-xs font-heading font-bold text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
                           <Star size={12} fill="currentColor" />
                           {judge.score}
                         </span>
@@ -388,29 +401,29 @@ export default function OtherInfoTab({
 
                     {/* Organization */}
                     {judge.organization && (
-                      <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-                        <Building size={14} className="text-slate-400" />
+                      <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-muted)]">
+                        <Building size={14} className="text-[var(--color-ink-soft)]" />
                         <span>{judge.organization}</span>
                       </div>
                     )}
 
                     {/* Feedback / Notes */}
                     {judge.notes && (
-                      <div className="mt-3 rounded-xl bg-white p-3 text-xs leading-relaxed text-slate-600 border border-slate-100">
-                        <p className="font-semibold text-slate-800 mb-0.5">Feedback / Notes:</p>
+                      <div className="mt-3 rounded-xl bg-[var(--color-surface)] p-3 text-xs leading-relaxed text-[var(--color-ink-muted)] border border-[var(--color-border)]">
+                        <p className="font-heading font-bold text-[var(--color-ink)] mb-0.5">Feedback / Notes:</p>
                         <p className="break-words">{judge.notes}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Footer & Actions */}
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-200/70 pt-3 text-xs">
+                  <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-xs">
                     <div className="flex items-center gap-2">
                       {judge.email && (
                         <a
                           href={`mailto:${judge.email}`}
                           title={`Email ${judge.name}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-700 hover:bg-blue-50 hover:text-blue-600"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[var(--color-ink)] hover:border-[var(--color-accent-deep)]"
                         >
                           <Mail size={12} />
                           Email
@@ -426,7 +439,7 @@ export default function OtherInfoTab({
                           target="_blank"
                           rel="noopener noreferrer"
                           title="LinkedIn Profile"
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-700 hover:bg-blue-50 hover:text-blue-600"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[var(--color-ink)] hover:border-[var(--color-accent-deep)]"
                         >
                           <Globe size={12} />
                           Profile
@@ -438,14 +451,14 @@ export default function OtherInfoTab({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setJudgeModalState(judge)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                          className="rounded-lg p-1.5 text-[var(--color-ink-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
                           title="Edit Judge"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => deleteJudge(judge._id)}
-                          className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600"
+                          className="rounded-lg p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
                           title="Delete Judge"
                         >
                           <Trash2 size={14} />
@@ -464,130 +477,118 @@ export default function OtherInfoTab({
       {/* SECTION 2: CERTIFICATE STORE */}
       {/* ========================================================= */}
       {activeSubTab === "certificates" && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xs">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-xl font-heading font-bold text-[var(--color-ink)]">
                 Certificate Store & Credentials
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Centralized vault for certificates of achievement, participation, and verification links.
+              <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                Participation certificates, winner awards, verification links, and credentials.
               </p>
             </div>
             {canEditResources && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setCertModalState("create")}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
-                <Plus size={16} />
-                Add Certificate
-              </button>
+                <Plus size={15} /> Add Certificate
+              </Button>
             )}
           </div>
 
           {certificates.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-slate-200 p-12 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <div className="mt-8 rounded-2xl border border-dashed border-[var(--color-border)] p-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
                 <FileCheck size={28} />
               </div>
-              <h3 className="mt-4 font-bold text-slate-900">No Certificates Stored</h3>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-                Add your project’s achievement awards, winner badges, or completion certificates.
+              <h3 className="mt-4 font-heading font-bold text-[var(--color-ink)]">No Certificates Stored</h3>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--color-ink-muted)]">
+                Upload participation certificates, winning awards, credentials, and verification keys.
               </p>
               {canEditResources && (
-                <button
-                  onClick={() => setCertModalState("create")}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                  <Plus size={16} />
-                  Add First Certificate
-                </button>
+                <div className="mt-5">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setCertModalState("create")}
+                  >
+                    <Plus size={15} /> Add First Certificate
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {certificates.map((cert) => (
                 <div
                   key={cert._id}
-                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-emerald-50/20 p-5 transition hover:border-emerald-300 hover:bg-white hover:shadow-md"
+                  className="flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/50 p-5 transition hover:border-[var(--color-accent-deep)] hover:bg-[var(--color-surface)] hover:shadow-xs"
                 >
                   <div>
-                    {/* Top Row */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                          <Award size={22} />
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 font-bold">
+                          <Award size={18} />
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-900">
+                          <h4 className="font-heading font-bold text-sm text-[var(--color-ink)]">
                             {cert.title}
                           </h4>
                           {cert.recipient && (
-                            <p className="text-xs font-semibold text-emerald-700">
-                              Issued to: {cert.recipient}
+                            <p className="text-xs text-[var(--color-ink-muted)]">
+                              For: <span className="font-semibold text-[var(--color-ink)]">{cert.recipient}</span>
                             </p>
                           )}
                         </div>
                       </div>
-
-                      {cert.issueDate && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                          <Calendar size={11} />
-                          {cert.issueDate}
-                        </span>
-                      )}
                     </div>
 
-                    {/* Issuer & Credential ID */}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+                      {cert.type && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] px-2.5 py-0.5 text-[11px] font-heading font-semibold text-[var(--color-accent-deep)]">
+                          {cert.type}
+                        </span>
+                      )}
+
                       {cert.issuer && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2 py-0.5 font-medium text-slate-700">
-                          <Building size={12} className="text-slate-400" />
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] px-2 py-0.5 font-medium text-[var(--color-ink-muted)]">
+                          <Building size={12} className="text-[var(--color-ink-soft)]" />
                           {cert.issuer}
                         </span>
                       )}
-                      {cert.credentialId && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/70 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-800">
-                          <KeyRound size={11} />
-                          {cert.credentialId}
-                        </span>
-                      )}
                     </div>
 
-                    {/* Notes */}
-                    {cert.notes && (
-                      <p className="mt-3 text-xs text-slate-600 bg-white/70 rounded-xl p-2.5 border border-slate-100">
-                        {cert.notes}
+                    {cert.description && (
+                      <p className="mt-3 text-xs text-[var(--color-ink-muted)] bg-[var(--color-surface)] rounded-xl p-2.5 border border-[var(--color-border)]">
+                        {cert.description}
                       </p>
                     )}
                   </div>
 
-                  {/* Actions Bar */}
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-200/70 pt-3 text-xs">
-                    <div className="flex items-center gap-2">
-                      {cert.url ? (
-                        <>
-                          <a
-                            href={cert.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 font-semibold text-white hover:bg-emerald-700"
-                          >
-                            <ExternalLink size={12} />
-                            View Certificate
-                          </a>
-                          <button
-                            onClick={() => copyText(cert.url, "Certificate URL")}
-                            className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100"
-                            title="Copy link"
-                          >
-                            <Copy size={13} />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-slate-400 text-xs italic">
-                          No direct link attached
-                        </span>
+                  <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      {cert.certificateUrl && (
+                        <a
+                          href={cert.certificateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[var(--color-ink)] hover:border-[var(--color-accent-deep)]"
+                        >
+                          <ExternalLink size={12} />
+                          View
+                        </a>
+                      )}
+
+                      {cert.credentialId && (
+                        <button
+                          onClick={() => copyText(cert.credentialId, "Credential ID")}
+                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[var(--color-ink)] hover:border-[var(--color-accent-deep)]"
+                          title="Copy Credential ID"
+                        >
+                          <Copy size={13} />
+                        </button>
                       )}
                     </div>
 
@@ -595,14 +596,14 @@ export default function OtherInfoTab({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setCertModalState(cert)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                          className="rounded-lg p-1.5 text-[var(--color-ink-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
                           title="Edit Certificate"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => deleteCertificate(cert._id)}
-                          className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600"
+                          className="rounded-lg p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
                           title="Delete Certificate"
                         >
                           <Trash2 size={14} />
@@ -623,69 +624,69 @@ export default function OtherInfoTab({
       {activeSubTab === "money" && (
         <div className="space-y-6">
           {/* Main Financial KPI Box */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xs">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--color-border)] pb-5">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-heading font-bold text-[var(--color-ink)]">
                   Prize Money & Financial Status
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                   Real-time tracking of prize earnings, disbursements, and account settlements.
                 </p>
               </div>
 
               {canEditResources && (
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setMoneyModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700"
                 >
-                  <Pencil size={16} />
-                  Update Financials
-                </button>
+                  <Pencil size={15} /> Update Financials
+                </Button>
               )}
             </div>
 
             {/* Financial Numbers Grid */}
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {/* Prize Money */}
-              <div className="rounded-2xl bg-amber-50/70 p-4 border border-amber-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-700">
+              <div className="rounded-2xl bg-[var(--color-surface-muted)] p-4 border border-[var(--color-border)]">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
                   Total Prize Money
                 </p>
-                <p className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
+                <p className="mt-2 text-2xl font-heading font-black text-[var(--color-ink)] sm:text-3xl">
                   {currency}
                   {prizeMoney.toLocaleString()}
                 </p>
               </div>
 
               {/* Amount Received */}
-              <div className="rounded-2xl bg-emerald-50/70 p-4 border border-emerald-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+              <div className="rounded-2xl bg-[var(--color-accent)]/20 p-4 border border-[var(--color-accent)]/30">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-accent-deep)]">
                   Amount Received
                 </p>
-                <p className="mt-2 text-2xl font-black text-emerald-700 sm:text-3xl">
+                <p className="mt-2 text-2xl font-heading font-black text-[var(--color-ink)] sm:text-3xl">
                   {currency}
                   {receivedAmount.toLocaleString()}
                 </p>
               </div>
 
               {/* Pending Amount */}
-              <div className="rounded-2xl bg-blue-50/70 p-4 border border-blue-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+              <div className="rounded-2xl bg-[var(--color-surface-muted)] p-4 border border-[var(--color-border)]">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
                   Pending Payout
                 </p>
-                <p className="mt-2 text-2xl font-black text-blue-700 sm:text-3xl">
+                <p className="mt-2 text-2xl font-heading font-black text-[var(--color-ink)] sm:text-3xl">
                   {currency}
                   {pendingAmount.toLocaleString()}
                 </p>
               </div>
 
               {/* Sponsor & Ad Total */}
-              <div className="rounded-2xl bg-purple-50/70 p-4 border border-purple-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-purple-700">
+              <div className="rounded-2xl bg-[var(--color-surface-muted)] p-4 border border-[var(--color-border)]">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
                   Sponsors & Ads Total
                 </p>
-                <p className="mt-2 text-2xl font-black text-purple-700 sm:text-3xl">
+                <p className="mt-2 text-2xl font-heading font-black text-[var(--color-ink)] sm:text-3xl">
                   {currency}
                   {totalAdRevenue.toLocaleString()}
                 </p>
@@ -693,57 +694,43 @@ export default function OtherInfoTab({
             </div>
 
             {/* Payout Status & Progress */}
-            <div className="mt-6 rounded-2xl bg-slate-50 p-5 border border-slate-100">
+            <div className="mt-6 rounded-2xl bg-[var(--color-surface-muted)] p-5 border border-[var(--color-border)]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <span className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
                     Payout Status
                   </span>
                   <div className="mt-1 flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold capitalize ${
-                        moneyStatus.payoutStatus === "received"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : moneyStatus.payoutStatus === "disbursed"
-                          ? "bg-blue-100 text-blue-800"
-                          : moneyStatus.payoutStatus === "processing"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {moneyStatus.payoutStatus === "received" && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-heading font-bold capitalize bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
+                      {moneyStatus.payoutStatus === "received" ? (
                         <CheckCircle2 size={13} />
-                      )}
-                      {moneyStatus.payoutStatus === "pending" && (
+                      ) : (
                         <Clock3 size={13} />
-                      )}
-                      {moneyStatus.payoutStatus === "processing" && (
-                        <TrendingUp size={13} />
                       )}
                       {moneyStatus.payoutStatus}
                     </span>
 
                     {moneyStatus.payoutMethod && (
-                      <span className="text-xs font-medium text-slate-600">
-                        via <span className="font-bold">{moneyStatus.payoutMethod}</span>
+                      <span className="text-xs font-medium text-[var(--color-ink-muted)]">
+                        via <span className="font-bold text-[var(--color-ink)]">{moneyStatus.payoutMethod}</span>
                       </span>
                     )}
                   </div>
                 </div>
 
                 <div className="text-right sm:w-1/3">
-                  <div className="flex justify-between text-xs font-semibold text-slate-500">
+                  <div className="flex justify-between text-xs font-semibold text-[var(--color-ink-muted)]">
                     <span>Received Progress</span>
-                    <span>
+                    <span className="text-[var(--color-ink)]">
                       {prizeMoney > 0
                         ? Math.min(100, Math.round((receivedAmount / prizeMoney) * 100))
                         : 0}
                       %
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
                     <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                      className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
                       style={{
                         width: `${
                           prizeMoney > 0
@@ -757,8 +744,8 @@ export default function OtherInfoTab({
               </div>
 
               {moneyStatus.notes && (
-                <div className="mt-4 border-t border-slate-200/70 pt-3 text-xs text-slate-600">
-                  <span className="font-bold text-slate-700">Financial Notes: </span>
+                <div className="mt-4 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-ink-muted)]">
+                  <span className="font-bold text-[var(--color-ink)]">Financial Notes: </span>
                   {moneyStatus.notes}
                 </div>
               )}
@@ -766,48 +753,50 @@ export default function OtherInfoTab({
           </div>
 
           {/* Sponsors & Ads Section */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xs">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <Megaphone size={20} className="text-purple-600" />
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <Megaphone size={20} className="text-[var(--color-accent-deep)]" />
+                  <h3 className="text-lg font-heading font-bold text-[var(--color-ink)]">
                     Sponsorships & Advertisements (Ads)
                   </h3>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                   Monetization partners, event sponsors, ad placements, and brand deals.
                 </p>
               </div>
 
               {canEditResources && (
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setAdModalState("create")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700"
                 >
-                  <Plus size={16} />
-                  Add Sponsor / Ad Deal
-                </button>
+                  <Plus size={15} /> Add Sponsor / Ad Deal
+                </Button>
               )}
             </div>
 
             {ads.length === 0 ? (
-              <div className="mt-6 rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
+              <div className="mt-6 rounded-2xl border border-dashed border-[var(--color-border)] p-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
                   <Megaphone size={24} />
                 </div>
-                <h4 className="mt-3 font-bold text-slate-900">No Sponsors or Ads Added</h4>
-                <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
+                <h4 className="mt-3 font-heading font-bold text-[var(--color-ink)]">No Sponsors or Ads Added</h4>
+                <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--color-ink-muted)]">
                   Track revenue from sponsors, banner ads, and partner deals for this project.
                 </p>
                 {canEditResources && (
-                  <button
-                    onClick={() => setAdModalState("create")}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-purple-700"
-                  >
-                    <Plus size={14} />
-                    Add First Sponsor
-                  </button>
+                  <div className="mt-4">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setAdModalState("create")}
+                    >
+                      <Plus size={14} /> Add First Sponsor
+                    </Button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -815,70 +804,77 @@ export default function OtherInfoTab({
                 {ads.map((ad) => (
                   <div
                     key={ad._id}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/40 p-4 transition hover:border-purple-200 hover:bg-white hover:shadow-md"
+                    className="flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/50 p-4 transition hover:border-[var(--color-accent-deep)] hover:bg-[var(--color-surface)] hover:shadow-xs"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-bold text-slate-900">
+                        <h4 className="font-heading font-bold text-sm text-[var(--color-ink)]">
                           {ad.name}
                         </h4>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize ${
-                            ad.status === "confirmed"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : ad.status === "completed"
-                              ? "bg-blue-100 text-blue-800"
-                              : ad.status === "in_discussion"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
+                        <span className="rounded-full bg-[var(--color-accent)]/20 px-2.5 py-0.5 text-[10px] font-heading font-bold capitalize text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
                           {ad.status.replace("_", " ")}
                         </span>
                       </div>
 
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="rounded-md bg-purple-50 px-2 py-0.5 font-semibold text-purple-700">
+                        <span className="rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] px-2 py-0.5 font-semibold text-[var(--color-ink)]">
                           {ad.type}
                         </span>
-                        <span className="font-bold text-slate-900">
+                        <span className="font-heading font-bold text-[var(--color-ink)]">
                           {currency}
                           {Number(ad.amount || 0).toLocaleString()}
                         </span>
                       </div>
 
                       {ad.contact && (
-                        <p className="mt-2.5 text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">POC: </span>
+                        <p className="mt-2.5 text-xs text-[var(--color-ink-muted)]">
+                          <span className="font-semibold text-[var(--color-ink)]">POC: </span>
                           {ad.contact}
                         </p>
                       )}
 
-                      {ad.notes && (
-                        <p className="mt-2 rounded-lg bg-white p-2 text-xs text-slate-600 border border-slate-100">
-                          {ad.notes}
-                        </p>
+                      {ad.deliverables && (
+                        <div className="mt-2 rounded-xl bg-[var(--color-surface)] p-2.5 text-xs text-[var(--color-ink-muted)] border border-[var(--color-border)]">
+                          <p className="font-heading font-bold text-[var(--color-ink)] mb-0.5">Deliverables:</p>
+                          <p>{ad.deliverables}</p>
+                        </div>
                       )}
                     </div>
 
-                    {canEditResources && (
-                      <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-200/70 pt-2">
-                        <button
-                          onClick={() => setAdModalState(ad)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-                          title="Edit Campaign"
+                    <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-2.5 text-xs">
+                      {ad.proofUrl ? (
+                        <a
+                          href={ad.proofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[var(--color-ink)] hover:border-[var(--color-accent-deep)]"
                         >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteAd(ad._id)}
-                          className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600"
-                          title="Delete Campaign"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    )}
+                          <ExternalLink size={12} />
+                          Proof
+                        </a>
+                      ) : (
+                        <span />
+                      )}
+
+                      {canEditResources && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setAdModalState(ad)}
+                            className="rounded-lg p-1 text-[var(--color-ink-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
+                            title="Edit Ad"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => deleteAd(ad._id)}
+                            className="rounded-lg p-1 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                            title="Delete Ad"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -892,23 +888,21 @@ export default function OtherInfoTab({
       {/* ========================================================= */}
       {judgeModalState && (
         <JudgeModal
-          project={project}
+          projectId={project._id}
           judge={judgeModalState === "create" ? null : judgeModalState}
+          isOpen={Boolean(judgeModalState)}
           onClose={() => setJudgeModalState(null)}
-          onSaved={(newJudges) => {
-            if (Array.isArray(newJudges)) {
-              setJudges(newJudges);
-            } else if (newJudges) {
-              setJudges((prev) => {
-                const idx = prev.findIndex((j) => String(j._id) === String(newJudges._id));
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = newJudges;
-                  return updated;
-                }
-                return [newJudges, ...prev];
-              });
-            }
+          onSaved={(savedJudge) => {
+            setJudges((prev) => {
+              const exists = prev.some((j) => String(j._id) === String(savedJudge._id));
+              if (exists) {
+                return prev.map((j) =>
+                  String(j._id) === String(savedJudge._id) ? savedJudge : j
+                );
+              }
+              return [...prev, savedJudge];
+            });
+            setJudgeModalState(null);
             if (onProjectUpdated) onProjectUpdated();
           }}
         />
@@ -916,23 +910,21 @@ export default function OtherInfoTab({
 
       {certModalState && (
         <CertificateModal
-          project={project}
+          projectId={project._id}
           certificate={certModalState === "create" ? null : certModalState}
+          isOpen={Boolean(certModalState)}
           onClose={() => setCertModalState(null)}
-          onSaved={(newCerts) => {
-            if (Array.isArray(newCerts)) {
-              setCertificates(newCerts);
-            } else if (newCerts) {
-              setCertificates((prev) => {
-                const idx = prev.findIndex((c) => String(c._id) === String(newCerts._id));
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = newCerts;
-                  return updated;
-                }
-                return [newCerts, ...prev];
-              });
-            }
+          onSaved={(savedCert) => {
+            setCertificates((prev) => {
+              const exists = prev.some((c) => String(c._id) === String(savedCert._id));
+              if (exists) {
+                return prev.map((c) =>
+                  String(c._id) === String(savedCert._id) ? savedCert : c
+                );
+              }
+              return [...prev, savedCert];
+            });
+            setCertModalState(null);
             if (onProjectUpdated) onProjectUpdated();
           }}
         />
@@ -940,11 +932,13 @@ export default function OtherInfoTab({
 
       {moneyModalOpen && (
         <MoneyStatusModal
-          project={project}
+          projectId={project._id}
           moneyStatus={moneyStatus}
+          isOpen={moneyModalOpen}
           onClose={() => setMoneyModalOpen(false)}
-          onSaved={(newStatus) => {
-            setMoneyStatus(newStatus);
+          onSaved={(updatedStatus) => {
+            setMoneyStatus(updatedStatus);
+            setMoneyModalOpen(false);
             if (onProjectUpdated) onProjectUpdated();
           }}
         />
@@ -952,23 +946,13 @@ export default function OtherInfoTab({
 
       {adModalState && (
         <AdModal
-          project={project}
+          projectId={project._id}
           ad={adModalState === "create" ? null : adModalState}
+          isOpen={Boolean(adModalState)}
           onClose={() => setAdModalState(null)}
-          onSaved={(updatedMoneyStatusOrAd) => {
-            if (updatedMoneyStatusOrAd && updatedMoneyStatusOrAd.ads) {
-              setMoneyStatus(updatedMoneyStatusOrAd);
-            } else {
-              // Re-fetch or refresh
-              setMoneyStatus((prev) => ({
-                ...prev,
-                ads: prev.ads.map((a) =>
-                  String(a._id) === String(updatedMoneyStatusOrAd._id)
-                    ? updatedMoneyStatusOrAd
-                    : a
-                ),
-              }));
-            }
+          onSaved={(updatedStatus) => {
+            setMoneyStatus(updatedStatus);
+            setAdModalState(null);
             if (onProjectUpdated) onProjectUpdated();
           }}
         />

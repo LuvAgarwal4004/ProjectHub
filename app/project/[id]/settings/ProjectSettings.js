@@ -4,1020 +4,623 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
-
+import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import {
-    ArrowLeft,
-    Shield,
-    UserPlus,
-    Trash2,
-    LogOut,
-    Copy,
-    Link2,
-    MessageCircle,
-    Pencil,
-    Save,
-    AlertTriangle,
+  ArrowLeft,
+  Shield,
+  UserPlus,
+  Trash2,
+  LogOut,
+  Copy,
+  Link2,
+  MessageCircle,
+  Pencil,
+  Save,
+  AlertTriangle,
+  Mail,
+  UserCheck,
 } from "lucide-react";
 
-export default function ProjectSettings({
-    project,
-}) {
-    const router = useRouter();
+export default function ProjectSettings({ project, userProjects = [] }) {
+  const router = useRouter();
 
-    const [email, setEmail] =
-        useState("");
-    const [projectName, setProjectName] =
-        useState(project.name || "");
+  const [email, setEmail] = useState("");
+  const [projectName, setProjectName] = useState(project.name || "");
+  const [projectDescription, setProjectDescription] = useState(
+    project.description || ""
+  );
+  const [savingProject, setSavingProject] = useState(false);
+  const [deleteProjectName, setDeleteProjectName] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+  const [role, setRole] = useState("viewer");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [invitationLink, setInvitationLink] = useState("");
+  const [deployedUrl, setDeployedUrl] = useState(project.deployedUrl || "");
+  const [event, setEvent] = useState(project.event || "");
+  const [institution, setInstitution] = useState(project.institution || "");
+  const [prizeMoney, setPrizeMoney] = useState(project.prizeMoney || "");
 
-    const [projectDescription, setProjectDescription] =
-        useState(project.description || "");
+  async function generateInvitation() {
+    setInviteLoading(true);
 
-    const [savingProject, setSavingProject] =
-        useState(false);
+    try {
+      const response = await fetch(`/api/projects/${project._id}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim() || null,
+          role,
+        }),
+      });
 
-    const [deleteProjectName, setDeleteProjectName] =
-        useState("");
+      const data = await response.json();
 
-    const [showDeleteModal, setShowDeleteModal] =
-        useState(false);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate invitation");
+      }
 
-    const [deletingProject, setDeletingProject] =
-        useState(false);
+      setInvitationLink(data.invitationLink);
 
-    const [role, setRole] =
-        useState("viewer");
-
-    const [inviteLoading, setInviteLoading] =
-        useState(false);
-
-    const [invitationLink, setInvitationLink] =
-        useState("");
-    const [deployedUrl, setDeployedUrl] =
-        useState(project.deployedUrl || "");
-
-    const [event, setEvent] =
-        useState(project.event || "");
-
-    const [institution, setInstitution] =
-        useState(project.institution || "");
-
-    const [prizeMoney, setPrizeMoney] =
-        useState(project.prizeMoney || "");
-    async function generateInvitation() {
-        setInviteLoading(true);
-
-        try {
-            const response =
-                await fetch(
-                    `/api/projects/${project._id}/invite`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-                        },
-                        body: JSON.stringify({
-                            email:
-                                email.trim() || null,
-                            role,
-                        }),
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.error ||
-                    "Failed to generate invitation"
-                );
-            }
-
-            setInvitationLink(
-                data.invitationLink
-            );
-
-            try {
-                await navigator.clipboard.writeText(
-                    data.invitationLink
-                );
-
-                toast.success(
-                    "Invitation link generated and copied!"
-                );
-            } catch {
-                toast.success(
-                    "Invitation link generated!"
-                );
-            }
-        } catch (error) {
-            toast.error(
-                error.message
-            );
-        } finally {
-            setInviteLoading(false);
-        }
+      try {
+        await navigator.clipboard.writeText(data.invitationLink);
+        toast.success("Invitation link generated and copied!");
+      } catch {
+        toast.success("Invitation link generated!");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setInviteLoading(false);
     }
-    async function copyInvitationLink() {
-        if (!invitationLink) return;
+  }
 
-        await navigator.clipboard.writeText(
-            invitationLink
-        );
+  async function copyInvitationLink() {
+    if (!invitationLink) return;
+    await navigator.clipboard.writeText(invitationLink);
+    toast.success("Invitation link copied!");
+  }
 
-        toast.success(
-            "Invitation link copied!"
-        );
-    }
-    async function saveProjectDetails() {
-        const name = projectName.trim();
-        const description = projectDescription.trim();
+  async function saveProjectDetails() {
+    const name = projectName.trim();
+    const description = projectDescription.trim();
 
-        if (!name) {
-            toast.error("Project name is required");
-            return;
-        }
-
-        setSavingProject(true);
-
-        try {
-            const res = await fetch(
-                `/api/projects/${project._id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        name,
-                        description,
-                        deployedUrl,
-                        event,
-                        institution,
-                        prizeMoney,
-                    }),
-                }
-            );
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(
-                    data.error ||
-                    "Failed to update project"
-                );
-            }
-
-            toast.success(
-                "Project updated successfully"
-            );
-
-            router.refresh();
-        } catch (error) {
-            toast.error(error.message);
-        } finally {
-            setSavingProject(false);
-        }
-    }
-    async function deleteProject() {
-        if (
-            deleteProjectName.trim() !==
-            project.name
-        ) {
-            toast.error(
-                "Project name does not match"
-            );
-            return;
-        }
-
-        setDeletingProject(true);
-
-        try {
-            const res = await fetch(
-                `/api/projects/${project._id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-                    body: JSON.stringify({
-                        projectName:
-                            deleteProjectName.trim(),
-                    }),
-                }
-            );
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(
-                    data.error ||
-                    "Failed to delete project"
-                );
-            }
-
-            toast.success(
-                "Project deleted successfully"
-            );
-
-            router.push("/dashboard");
-            router.refresh();
-        } catch (error) {
-            toast.error(error.message);
-        } finally {
-            setDeletingProject(false);
-        }
-    }
-    function sendInvitationEmail() {
-        if (!invitationLink) {
-            toast.error(
-                "Generate the invitation link first"
-            );
-            return;
-        }
-
-        if (!email.trim()) {
-            toast.error(
-                "Enter an email address first"
-            );
-            return;
-        }
-
-        const subject =
-            encodeURIComponent(
-                `Invitation to join ${project.name}`
-            );
-
-        const body =
-            encodeURIComponent(
-                `Hey,\n\nYou have been invited to join the project "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}\n\nThis invitation expires in 7 days.`
-            );
-
-        window.location.href =
-            `mailto:${email}?subject=${subject}&body=${body}`;
+    if (!name) {
+      toast.error("Project name is required");
+      return;
     }
 
-    function sendInvitationWhatsApp() {
-        if (!invitationLink) {
-            toast.error(
-                "Generate the invitation link first"
-            );
-            return;
-        }
+    setSavingProject(true);
 
-        const message =
-            encodeURIComponent(
-                `You've been invited to join "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}`
-            );
+    try {
+      const res = await fetch(`/api/projects/${project._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description,
+          deployedUrl: deployedUrl.trim(),
+          event: event.trim(),
+          institution: institution.trim(),
+          prizeMoney: prizeMoney.trim(),
+        }),
+      });
 
-        window.open(
-            `https://wa.me/?text=${message}`,
-            "_blank"
-        );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not update project");
+      }
+
+      toast.success("Project settings saved");
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  function sendInvitationEmail() {
+    if (!invitationLink) {
+      toast.error("Generate the invitation link first");
+      return;
     }
 
-
-    async function changeRole(
-        userId,
-        newRole
-    ) {
-        const res = await fetch(
-            `/api/projects/${project._id}/members/${userId}`,
-            {
-                method: "PATCH",
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                },
-                body: JSON.stringify({
-                    role: newRole,
-                }),
-            }
-        );
-
-        const data =
-            await res.json();
-
-        if (!res.ok) {
-            toast.error(
-                data.error ||
-                "Could not change role"
-            );
-            return;
-        }
-
-        toast.success(
-            "Role updated"
-        );
-
-        router.refresh();
-    }
-
-    async function removeMember(
-        userId
-    ) {
-        if (
-            !confirm(
-                "Remove this member from the project?"
-            )
-        ) {
-            return;
-        }
-
-        const res = await fetch(
-            `/api/projects/${project._id}/members/${userId}`,
-            {
-                method: "DELETE",
-            }
-        );
-
-        const data =
-            await res.json();
-
-        if (!res.ok) {
-            toast.error(
-                data.error ||
-                "Could not remove member"
-            );
-            return;
-        }
-
-        toast.success(
-            "Member removed"
-        );
-
-        router.refresh();
-    }
-
-    async function leaveProject() {
-        if (
-            !confirm(
-                "Leave this project?"
-            )
-        ) {
-            return;
-        }
-
-        const res = await fetch(
-            `/api/projects/${project._id}/leave`,
-            {
-                method: "POST",
-            }
-        );
-
-        const data =
-            await res.json();
-
-        if (!res.ok) {
-            toast.error(
-                data.error ||
-                "Could not leave project"
-            );
-            return;
-        }
-
-        router.push("/dashboard");
-        router.refresh();
-    }
-    async function makeAdmin(userId, name) {
-        if (
-            !confirm(
-                `Make ${name} an admin?`
-            )
-        ) {
-            return;
-        }
-
-        const res = await fetch(
-            `/api/projects/${project._id}/members/${userId}`,
-            {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    role: "admin",
-                }),
-            }
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            toast.error(
-                data.error || "Could not make admin"
-            );
-            return;
-        }
-
-        toast.success(`${name} is now an admin`);
-
-        router.refresh();
-    }
-    async function transferAdmin(
-        userId,
-        name
-    ) {
-        if (
-            !confirm(
-                `Transfer admin to ${name}? You will become an editor.`
-            )
-        ) {
-            return;
-        }
-
-        const res = await fetch(
-            `/api/projects/${project._id}/transfer-admin`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                },
-                body: JSON.stringify({
-                    userId,
-                }),
-            }
-        );
-
-        const data =
-            await res.json();
-
-        if (!res.ok) {
-            toast.error(
-                data.error ||
-                "Could not transfer admin"
-            );
-            return;
-        }
-
-        toast.success(
-            "Admin transferred"
-        );
-
-        router.push(
-            `/project/${project._id}`
-        );
-
-        router.refresh();
-    }
-
-    return (
-        <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-            <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-xl">
-                <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
-                    <Link
-                        href={`/project/${project._id}`}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600"
-                    >
-                        <ArrowLeft size={18} />
-                        Back to Project
-                    </Link>
-                </div>
-            </nav>
-
-            <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-                        Project Settings
-                    </p>
-
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        {project.name}
-                    </h1>
-
-                    <p className="mt-2 text-slate-500">
-                        Manage members, roles and project access.
-                    </p>
-                </div>
-                <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-
-                    <div className="flex items-start gap-4">
-
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                            <Pencil size={20} />
-                        </div>
-
-                        <div>
-                            <h2 className="font-bold text-slate-900">
-                                Project Information
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Update your project's name and description.
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <div className="mt-6 space-y-5">
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                Project Name
-                            </label>
-
-                            <input
-                                value={projectName}
-                                onChange={(e) =>
-                                    setProjectName(e.target.value)
-                                }
-                                maxLength={100}
-                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                placeholder="Project name"
-                            />
-                        </div>
-
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                Description
-                            </label>
-
-                            <textarea
-                                value={projectDescription}
-                                onChange={(e) =>
-                                    setProjectDescription(e.target.value)
-                                }
-                                maxLength={1000}
-                                rows={5}
-                                className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                placeholder="Project description"
-                            />
-                        </div>
-                        <div className="grid gap-5 sm:grid-cols-2">
-
-                            <div className="sm:col-span-2">
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Deployed URL
-                                </label>
-
-                                <input
-                                    type="url"
-                                    value={deployedUrl}
-                                    onChange={(e) =>
-                                        setDeployedUrl(e.target.value)
-                                    }
-                                    placeholder="https://your-project.vercel.app"
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Event
-                                </label>
-
-                                <input
-                                    value={event}
-                                    onChange={(e) =>
-                                        setEvent(e.target.value)
-                                    }
-                                    placeholder="Event / Hackathon"
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Institution
-                                </label>
-
-                                <input
-                                    value={institution}
-                                    onChange={(e) =>
-                                        setInstitution(e.target.value)
-                                    }
-                                    placeholder="College / Institution"
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Prize Money
-                                </label>
-
-                                <input
-                                    value={prizeMoney}
-                                    onChange={(e) =>
-                                        setPrizeMoney(e.target.value)
-                                    }
-                                    placeholder="e.g. ₹50,000"
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                />
-                            </div>
-
-                        </div>
-
-                        <div className="flex justify-end">
-
-                            <button
-                                type="button"
-                                onClick={saveProjectDetails}
-                                disabled={savingProject}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <Save size={16} />
-
-                                {savingProject
-                                    ? "Saving..."
-                                    : "Save Changes"}
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-                {/* INVITE */}
-
-                <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="flex items-start gap-4">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                            <UserPlus size={20} />
-                        </div>
-
-                        <div>
-                            <h2 className="font-bold text-slate-900">
-                                Invite Member
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Generate an invitation link and
-                                send it by WhatsApp or
-                                anywhere else.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* <div className="mt-6 grid gap-3 md:grid-cols-[1fr_160px]">
-                        <input
-                            value={email}
-                            onChange={(e) =>
-                                setEmail(e.target.value)
-                            }
-                            placeholder="member@example.com (optional for shared link)"
-                            type="email"
-                            className="min-w-0 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        />
-
-                        <select
-                            value={role}
-                            onChange={(e) =>
-                                setRole(e.target.value)
-                            }
-                            className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                        >
-                            <option value="viewer">
-                                Viewer
-                            </option>
-
-                            <option value="editor">
-                                Editor
-                            </option>
-                        </select>
-                    </div> */}
-
-                    <button
-                        onClick={generateInvitation}
-                        disabled={inviteLoading}
-                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <Link2 size={17} />
-
-                        {inviteLoading
-                            ? "Generating..."
-                            : "Generate Invitation Link"}
-                    </button>
-
-                    {invitationLink && (
-                        <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                                Invitation Link
-                            </p>
-
-                            <input
-                                readOnly
-                                value={invitationLink}
-                                className="mt-2 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 outline-none"
-                            />
-
-                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                <button
-                                    onClick={copyInvitationLink}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                    <Copy size={15} />
-                                    Copy
-                                </button>
-
-                                {/* <button
-                                    onClick={sendInvitationEmail}
-                                    disabled={!email.trim()}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    <Mail size={15} />
-                                    Email
-                                </button> */}
-
-                                <button
-                                    onClick={sendInvitationWhatsApp}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-                                >
-                                    <MessageCircle size={15} />
-                                    WhatsApp
-                                </button>
-                            </div>
-
-                            <p className="mt-3 text-xs leading-5 text-slate-500">
-                                You can also paste this link directly
-                                into Discord, Telegram, WhatsApp,
-                                etc.
-                            </p>
-                        </div>
-                    )}
-                </section>
-
-                {/* MEMBERS */}
-
-                <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                            <Shield size={20} />
-                        </div>
-
-                        <div>
-                            <h2 className="font-bold text-slate-900">
-                                Members
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Change roles or remove members.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 space-y-3">
-                        {project.members.map(
-                            (member) => (
-                                <div
-                                    key={member.user._id}
-                                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between"
-                                >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        {member.user.image ? (
-                                            <img
-                                                src={
-                                                    member.user.image
-                                                }
-                                                alt=""
-                                                className="h-10 w-10 shrink-0 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                                                {member.user.name
-                                                    ?.charAt(0)
-                                                    ?.toUpperCase() ||
-                                                    "U"}
-                                            </div>
-                                        )}
-
-                                        <div className="min-w-0">
-                                            <p className="truncate font-semibold text-slate-800">
-                                                {
-                                                    member.user
-                                                        .name
-                                                }
-                                            </p>
-
-                                            <p className="truncate text-xs text-slate-400">
-                                                {
-                                                    member.user
-                                                        .email
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-
-                                        {member.role === "admin" ? (
-
-                                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-                                                Admin
-                                            </span>
-
-                                        ) : (
-
-                                            <>
-                                                <select
-                                                    value={member.role}
-                                                    onChange={(e) =>
-                                                        changeRole(
-                                                            member.user._id,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold"
-                                                >
-                                                    <option value="viewer">
-                                                        Viewer
-                                                    </option>
-
-                                                    <option value="editor">
-                                                        Editor
-                                                    </option>
-                                                </select>
-
-
-                                                <button
-                                                    onClick={() =>
-                                                        makeAdmin(
-                                                            member.user._id,
-                                                            member.user.name
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-                                                >
-                                                    Make Admin
-                                                </button>
-
-
-                                                <button
-                                                    onClick={() =>
-                                                        removeMember(
-                                                            member.user._id
-                                                        )
-                                                    }
-                                                    className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            </>
-
-                                        )}
-
-                                    </div>
-                                </div>
-                            )
-                        )}
-                    </div>
-                </section>
-
-                {/* LEAVE */}
-
-                <section className="mt-6 rounded-3xl border border-red-100 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 className="font-bold text-slate-900">
-                                Leave Project
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Admin must transfer ownership before leaving.
-                            </p>
-                        </div>
-
-                        <button
-                            onClick={leaveProject}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
-                        >
-                            <LogOut size={16} />
-                            Leave Project
-                        </button>
-                    </div>
-                </section>
-                <section className="mt-6 rounded-3xl border border-red-200 bg-red-50/40 p-5 shadow-sm sm:p-7">
-
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                        <div className="flex items-start gap-4">
-
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
-                                <AlertTriangle size={20} />
-                            </div>
-
-                            <div>
-                                <h2 className="font-bold text-red-700">
-                                    Delete Project
-                                </h2>
-
-                                <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
-                                    Permanently delete this project and
-                                    remove it from everyone's dashboard.
-                                    This action cannot be undone.
-                                </p>
-                            </div>
-
-                        </div>
-
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setDeleteProjectName("");
-                                setShowDeleteModal(true);
-                            }}
-                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
-                        >
-                            <Trash2 size={16} />
-                            Delete Project
-                        </button>
-
-                    </div>
-
-                </section>
-            </div>
-            {showDeleteModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-
-                    <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
-
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                            <AlertTriangle size={24} />
-                        </div>
-
-
-                        <h2 className="mt-5 text-xl font-bold text-slate-900">
-                            Delete "{project.name}"?
-                        </h2>
-
-
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
-                            This will permanently delete the project
-                            and all of its membership information.
-                            This action cannot be undone.
-                        </p>
-
-
-                        <div className="mt-6">
-
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                Type the project name to confirm
-                            </label>
-
-                            <input
-                                value={deleteProjectName}
-                                onChange={(e) =>
-                                    setDeleteProjectName(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder={project.name}
-                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                            />
-
-                            <p className="mt-2 text-xs text-slate-400">
-                                Type exactly:
-                                <span className="ml-1 font-semibold text-slate-600">
-                                    {project.name}
-                                </span>
-                            </p>
-
-                        </div>
-
-
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setShowDeleteModal(false)
-                                }
-                                disabled={deletingProject}
-                                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                            >
-                                Cancel
-                            </button>
-
-
-                            <button
-                                type="button"
-                                onClick={deleteProject}
-                                disabled={
-                                    deletingProject ||
-                                    deleteProjectName.trim() !==
-                                    project.name
-                                }
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                <Trash2 size={16} />
-
-                                {deletingProject
-                                    ? "Deleting..."
-                                    : "Delete Permanently"}
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-            )}
-        </main>
+    const subject = encodeURIComponent(`Invitation to join ${project.name}`);
+    const body = encodeURIComponent(
+      `Hey,\n\nYou have been invited to join the project "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}\n\nThis invitation expires in 7 days.`
     );
+
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  }
+
+  function sendInvitationWhatsApp() {
+    if (!invitationLink) {
+      toast.error("Generate the invitation link first");
+      return;
+    }
+
+    const message = encodeURIComponent(
+      `You've been invited to join "${project.name}" as a ${role}.\n\nJoin here:\n${invitationLink}`
+    );
+
+    window.open(`https://wa.me/?text=${message}`, "_blank");
+  }
+
+  async function changeRole(userId, newRole) {
+    const res = await fetch(
+      `/api/projects/${project._id}/members/${userId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Could not change role");
+      return;
+    }
+
+    toast.success("Role updated");
+    router.refresh();
+  }
+
+  async function removeMember(userId) {
+    if (!confirm("Remove this member from the project?")) return;
+
+    const res = await fetch(
+      `/api/projects/${project._id}/members/${userId}`,
+      { method: "DELETE" }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Could not remove member");
+      return;
+    }
+
+    toast.success("Member removed");
+    router.refresh();
+  }
+
+  async function transferAdmin(userId, name) {
+    if (!confirm(`Transfer admin to ${name}? You will become an editor.`)) return;
+
+    const res = await fetch(`/api/projects/${project._id}/transfer-admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Could not transfer admin");
+      return;
+    }
+
+    toast.success("Admin transferred");
+    router.push(`/project/${project._id}`);
+    router.refresh();
+  }
+
+  async function handleDeleteProject() {
+    if (deleteProjectName.trim() !== project.name.trim()) {
+      toast.error("Project name does not match");
+      return;
+    }
+
+    setDeletingProject(true);
+
+    try {
+      const res = await fetch(`/api/projects/${project._id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Could not delete project");
+      }
+
+      toast.success("Project deleted");
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDeletingProject(false);
+    }
+  }
+
+  return (
+    <AppShell
+      projects={userProjects}
+      currentProjectId={project._id}
+      title="Project Settings"
+      topbarActions={
+        <Link href={`/project/${project._id}`}>
+          <Button variant="outline" size="sm">
+            <ArrowLeft size={16} /> Back to Project
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-8 font-body">
+        {/* Header Section */}
+        <div>
+          <p className="text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-accent-deep)]">
+            Settings & Permissions
+          </p>
+          <h1 className="mt-1 text-3xl font-heading font-extrabold uppercase text-[var(--color-ink)]">
+            {project.name}
+          </h1>
+          <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+            Manage project details, member access, roles, and administrative options.
+          </p>
+        </div>
+
+        {/* 1. PROJECT INFORMATION */}
+        <Card className="p-6 space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--color-border)]">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 flex items-center justify-center font-heading">
+              <Pencil size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-heading font-extrabold uppercase text-[var(--color-ink)]">
+                Project Information
+              </h2>
+              <p className="text-xs text-[var(--color-ink-muted)]">
+                Update core project metadata and public details.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                Project Name
+              </label>
+              <input
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                maxLength={100}
+                className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                placeholder="Project name"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                Description
+              </label>
+              <textarea
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
+                maxLength={1000}
+                rows={4}
+                className="w-full resize-none rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                placeholder="Project description"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Deployed URL
+                </label>
+                <input
+                  type="url"
+                  value={deployedUrl}
+                  onChange={(e) => setDeployedUrl(e.target.value)}
+                  placeholder="https://your-project.vercel.app"
+                  className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Event / Hackathon
+                </label>
+                <input
+                  value={event}
+                  onChange={(e) => setEvent(e.target.value)}
+                  placeholder="e.g. SIH 2026"
+                  className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Institution
+                </label>
+                <input
+                  value={institution}
+                  onChange={(e) => setInstitution(e.target.value)}
+                  placeholder="College / Organization"
+                  className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={saveProjectDetails}
+                disabled={savingProject}
+              >
+                <Save size={16} />
+                {savingProject ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* 2. INVITE MEMBER */}
+        <Card className="p-6 space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--color-border)]">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 flex items-center justify-center font-heading">
+              <UserPlus size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-heading font-extrabold uppercase text-[var(--color-ink)]">
+                Invite Member
+              </h2>
+              <p className="text-xs text-[var(--color-ink-muted)]">
+                Generate an invitation link to invite team members with specific roles.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Member Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="colleague@example.com"
+                  className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  Role
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)] transition"
+                >
+                  <option value="editor">Editor (Can add resources)</option>
+                  <option value="viewer">Viewer (Read only)</option>
+                  <option value="admin">Admin (Full access)</option>
+                </select>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="md"
+              onClick={generateInvitation}
+              disabled={inviteLoading}
+              className="w-full sm:w-auto"
+            >
+              <Link2 size={16} />
+              {inviteLoading ? "Generating..." : "Generate Invitation Link"}
+            </Button>
+
+            {invitationLink && (
+              <div className="rounded-[12px] border border-[var(--color-accent)] bg-[var(--color-accent)]/15 p-4 space-y-3">
+                <p className="text-xs font-heading font-bold text-[var(--color-accent-deep)] uppercase tracking-wider">
+                  Invitation Link Ready
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={invitationLink}
+                    className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-mono text-[var(--color-ink)] outline-none"
+                  />
+                  <Button variant="secondary" size="sm" onClick={copyInvitationLink}>
+                    <Copy size={14} /> Copy
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={sendInvitationEmail}>
+                    <Mail size={14} /> Email Invite
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={sendInvitationWhatsApp}>
+                    <MessageCircle size={14} /> WhatsApp
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* 3. TEAM MEMBERS & ROLES */}
+        <Card className="p-6 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30 flex items-center justify-center font-heading">
+                <Shield size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-heading font-extrabold uppercase text-[var(--color-ink)]">
+                  Team Members ({project.members?.length || 0})
+                </h2>
+                <p className="text-xs text-[var(--color-ink-muted)]">
+                  Manage member roles and permissions.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="divide-y divide-[var(--color-border)]">
+            {project.members?.map((member) => {
+              const memberUser = member.user || {};
+              const isMemberAdmin = member.role === "admin";
+
+              return (
+                <div
+                  key={memberUser._id || member._id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3.5"
+                >
+                  <div className="flex items-center gap-3">
+                    {memberUser.image ? (
+                      <img
+                        src={memberUser.image}
+                        alt={memberUser.name || "Member"}
+                        className="w-10 h-10 rounded-full border border-[var(--color-border)] object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/30 text-[var(--color-accent-deep)] font-heading font-bold text-sm flex items-center justify-center shrink-0">
+                        {(memberUser.name || "U")[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-heading font-bold text-sm text-[var(--color-ink)]">
+                        {memberUser.name || "Unknown User"}
+                      </p>
+                      <p className="font-body text-xs text-[var(--color-ink-muted)]">
+                        {memberUser.email || ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 justify-end">
+                    <Badge role={member.role} />
+
+                    {!isMemberAdmin && (
+                      <select
+                        value={member.role}
+                        onChange={(e) => changeRole(memberUser._id, e.target.value)}
+                        className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-heading text-[var(--color-ink)] outline-none"
+                      >
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    )}
+
+                    {!isMemberAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => transferAdmin(memberUser._id, memberUser.name)}
+                        className="text-xs"
+                      >
+                        <UserCheck size={14} /> Make Admin
+                      </Button>
+                    )}
+
+                    {!isMemberAdmin && (
+                      <button
+                        onClick={() => removeMember(memberUser._id)}
+                        className="p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 rounded-lg transition"
+                        title="Remove member"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* 4. DANGER ZONE */}
+        <Card className="p-6 border-[var(--color-danger)]/30 space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--color-danger)]/20">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-danger)]/15 text-[var(--color-danger)] flex items-center justify-center font-heading">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-heading font-extrabold uppercase text-[var(--color-danger)]">
+                Danger Zone
+              </h2>
+              <p className="text-xs text-[var(--color-ink-muted)]">
+                Irreversible actions for this project workspace.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-heading font-bold text-sm text-[var(--color-ink)]">
+                Delete This Project
+              </p>
+              <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">
+                Permanently delete this project, files, links, and member associations.
+              </p>
+            </div>
+
+            <Button
+              variant="danger"
+              size="md"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              <Trash2 size={16} /> Delete Project
+            </Button>
+          </div>
+        </Card>
+
+        {/* DELETE MODAL */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-md rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl space-y-5">
+              <div>
+                <h3 className="text-lg font-heading font-extrabold uppercase text-[var(--color-danger)]">
+                  Delete Project
+                </h3>
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                  Type <span className="font-mono font-bold text-[var(--color-ink)]">{project.name}</span> to confirm deletion.
+                </p>
+              </div>
+
+              <input
+                type="text"
+                value={deleteProjectName}
+                onChange={(e) => setDeleteProjectName(e.target.value)}
+                placeholder={project.name}
+                className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-danger)]"
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={
+                    deletingProject ||
+                    deleteProjectName.trim() !== project.name.trim()
+                  }
+                  onClick={handleDeleteProject}
+                >
+                  {deletingProject ? "Deleting..." : "Confirm Delete"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AppShell>
+  );
 }
