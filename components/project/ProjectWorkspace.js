@@ -286,18 +286,16 @@ export default function ProjectWorkspace({
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-heading whitespace-nowrap transition ${
-                tab === t.id
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-heading whitespace-nowrap transition ${tab === t.id
                   ? "bg-[var(--color-accent)] text-[#0B0B0A] font-bold shadow-xs"
                   : "font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
-              }`}
+                }`}
             >
               {t.icon}
               <span>{t.label}</span>
               {t.badge > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  tab === t.id ? "bg-[#0B0B0A] text-[var(--color-accent)]" : "bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)]"
-                }`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${tab === t.id ? "bg-[#0B0B0A] text-[var(--color-accent)]" : "bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)]"
+                  }`}>
                   {t.badge}
                 </span>
               )}
@@ -357,41 +355,79 @@ export default function ProjectWorkspace({
               ) : (
                 <div className="space-y-2">
                   {tasks.map((task) => (
-                    <div
-                      key={task._id}
-                      className="flex items-center justify-between p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={task.status === "completed"}
-                          onChange={() =>
-                            updateTask(task._id, {
-                              status: task.status === "completed" ? "pending" : "completed",
-                            })
-                          }
-                          disabled={!canEditResources}
-                          className="rounded border-[var(--color-border)] accent-[var(--color-accent-deep)] w-4 h-4 cursor-pointer"
-                        />
-                        <span
-                          className={`font-heading font-medium ${
-                            task.status === "completed" ? "line-through text-[var(--color-ink-soft)]" : "text-[var(--color-ink)]"
-                          }`}
-                        >
-                          {task.title}
-                        </span>
-                      </div>
+  <div
+    key={task._id}
+    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
+  >
+    {/* Task information */}
+    <div className="flex items-center gap-3 min-w-0">
+      {/* Status indicator */}
+      <div
+        className={`w-2 h-2 rounded-full shrink-0 ${
+          task.status === "completed"
+            ? "bg-[var(--color-accent-deep)]"
+            : task.status === "in_progress"
+            ? "bg-[var(--color-warning)]"
+            : task.status === "pending"
+            ? "bg-[var(--color-danger)]"
+            : "bg-[var(--color-ink-soft)]"
+        }`}
+      />
 
-                      {canEditResources && (
-                        <button
-                          onClick={() => deleteTask(task._id)}
-                          className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+      <span
+        className={`font-heading font-medium truncate ${
+          task.status === "completed"
+            ? "line-through text-[var(--color-ink-soft)]"
+            : "text-[var(--color-ink)]"
+        }`}
+      >
+        {task.title}
+      </span>
+    </div>
+
+    {/* Task controls */}
+    <div className="flex items-center gap-2 shrink-0">
+      {canEditResources ? (
+        <select
+          value={task.status}
+          onChange={(e) =>
+            updateTask(task._id, {
+              status: e.target.value,
+            })
+          }
+          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)]"
+        >
+          <option value="todo">To-do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+      ) : (
+        <span className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink-muted)]">
+          {task.status === "todo"
+            ? "To-do"
+            : task.status === "in_progress"
+            ? "In Progress"
+            : task.status === "pending"
+            ? "Pending"
+            : "Completed"}
+        </span>
+      )}
+
+      {/* Delete = admin/editor currently based on canEditResources.
+          If you want deletion admin-only, see the change below. */}
+      {isAdmin && !isClosed && (
+        <button
+          onClick={() => deleteTask(task._id)}
+          className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
+          title="Delete task"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
+  </div>
+))}
                 </div>
               )}
             </Card>
@@ -515,7 +551,10 @@ export default function ProjectWorkspace({
         <CreateTaskModal
           project={project}
           onClose={() => setTaskModal(false)}
-          onTaskCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
+          onCreated={(newTask) => {
+            setTasks((prev) => [newTask, ...prev]);
+            setTaskModal(false);
+          }}
         />
       )}
 

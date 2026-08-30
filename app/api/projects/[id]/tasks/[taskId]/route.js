@@ -36,7 +36,29 @@ async function getAdmin(
 
   return project;
 }
+async function getTaskManager(projectId, userId) {
+  const project = await Project.findById(projectId);
 
+  if (!project) {
+    return null;
+  }
+
+  const member = project.members.find(
+    (m) => String(m.user) === String(userId)
+  );
+
+  if (
+    !member ||
+    !["admin", "editor"].includes(member.role)
+  ) {
+    return null;
+  }
+
+  return {
+    project,
+    member,
+  };
+}
 export async function PATCH(
   req,
   { params }
@@ -59,25 +81,53 @@ export async function PATCH(
 
     await connectDB();
 
-    const project =
-      await getAdmin(
-        id,
-        session.user.id
-      );
-
-    if (!project) {
+    // const project =
+    //   await getAdmin(
+    //     id,
+    //     session.user.id
+    //   );
+    const membership = await getTaskManager(
+      id,
+      session.user.id
+    );
+    // if (!project) {
+    //   return NextResponse.json(
+    //     {
+    //       error:
+    //         "Only the project admin can manage tasks",
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
+    if (!membership) {
       return NextResponse.json(
         {
           error:
-            "Only the project admin can manage tasks",
+            "Only project admins and editors can update tasks",
         },
         { status: 403 }
       );
     }
 
+    const project = membership.project;
     const body =
       await req.json();
-
+    if (
+      body.status !== undefined &&
+      ![
+        "todo",
+        "in_progress",
+        "pending",
+        "completed",
+      ].includes(body.status)
+    ) {
+      return NextResponse.json(
+        {
+          error: "Invalid task status",
+        },
+        { status: 400 }
+      );
+    }
     const allowed = [
       "title",
       "assignees",
@@ -120,11 +170,11 @@ export async function PATCH(
           update.assignees
         )
           ? update.assignees.filter(
-              (userId) =>
-                memberIds.includes(
-                  String(userId)
-                )
-            )
+            (userId) =>
+              memberIds.includes(
+                String(userId)
+              )
+          )
           : [];
     }
 
