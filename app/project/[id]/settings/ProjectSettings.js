@@ -220,9 +220,16 @@ export default function ProjectSettings({ project, userProjects = [] }) {
     try {
       const res = await fetch(`/api/projects/${project._id}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectName: deleteProjectName.trim(),
+        }),
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         throw new Error(data.error || "Could not delete project");
       }
