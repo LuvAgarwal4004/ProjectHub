@@ -84,7 +84,34 @@ export default function ProjectWorkspace({
       prev.map((task) => (String(task._id) === String(taskId) ? data.task : task))
     );
   }
+  async function changeMemberRole(userId, role) {
+    const res = await fetch(`/api/projects/${project._id}/members/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Could not change role");
+      return;
+    }
+    toast.success("Role updated");
+    router.refresh();
+  }
 
+  async function removeMember(userId) {
+    if (!confirm("Remove this member from the project?")) return;
+    const res = await fetch(`/api/projects/${project._id}/members/${userId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Could not remove member");
+      return;
+    }
+    toast.success("Member removed");
+    router.refresh();
+  }
   const EDITABLE_EXTENSIONS = [
     "js", "jsx", "ts", "tsx", "css", "scss", "sass", "less", "html", "htm",
     "json", "md", "txt", "xml", "yml", "yaml", "py", "java", "c", "cpp",
@@ -287,8 +314,8 @@ export default function ProjectWorkspace({
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-heading whitespace-nowrap transition ${tab === t.id
-                  ? "bg-[var(--color-accent)] text-[#0B0B0A] font-bold shadow-xs"
-                  : "font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
+                ? "bg-[var(--color-accent)] text-[#0B0B0A] font-bold shadow-xs"
+                : "font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
                 }`}
             >
               {t.icon}
@@ -355,79 +382,77 @@ export default function ProjectWorkspace({
               ) : (
                 <div className="space-y-2">
                   {tasks.map((task) => (
-  <div
-    key={task._id}
-    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
-  >
-    {/* Task information */}
-    <div className="flex items-center gap-3 min-w-0">
-      {/* Status indicator */}
-      <div
-        className={`w-2 h-2 rounded-full shrink-0 ${
-          task.status === "completed"
-            ? "bg-[var(--color-accent-deep)]"
-            : task.status === "in_progress"
-            ? "bg-[var(--color-warning)]"
-            : task.status === "pending"
-            ? "bg-[var(--color-danger)]"
-            : "bg-[var(--color-ink-soft)]"
-        }`}
-      />
+                    <div
+                      key={task._id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
+                    >
+                      {/* Task information */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Status indicator */}
+                        <div
+                          className={`w-2 h-2 rounded-full shrink-0 ${task.status === "completed"
+                            ? "bg-[var(--color-accent-deep)]"
+                            : task.status === "in_progress"
+                              ? "bg-[var(--color-warning)]"
+                              : task.status === "pending"
+                                ? "bg-[var(--color-danger)]"
+                                : "bg-[var(--color-ink-soft)]"
+                            }`}
+                        />
 
-      <span
-        className={`font-heading font-medium truncate ${
-          task.status === "completed"
-            ? "line-through text-[var(--color-ink-soft)]"
-            : "text-[var(--color-ink)]"
-        }`}
-      >
-        {task.title}
-      </span>
-    </div>
+                        <span
+                          className={`font-heading font-medium truncate ${task.status === "completed"
+                            ? "line-through text-[var(--color-ink-soft)]"
+                            : "text-[var(--color-ink)]"
+                            }`}
+                        >
+                          {task.title}
+                        </span>
+                      </div>
 
-    {/* Task controls */}
-    <div className="flex items-center gap-2 shrink-0">
-      {canEditResources ? (
-        <select
-          value={task.status}
-          onChange={(e) =>
-            updateTask(task._id, {
-              status: e.target.value,
-            })
-          }
-          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)]"
-        >
-          <option value="todo">To-do</option>
-          <option value="in_progress">In Progress</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-        </select>
-      ) : (
-        <span className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink-muted)]">
-          {task.status === "todo"
-            ? "To-do"
-            : task.status === "in_progress"
-            ? "In Progress"
-            : task.status === "pending"
-            ? "Pending"
-            : "Completed"}
-        </span>
-      )}
+                      {/* Task controls */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {canEditResources ? (
+                          <select
+                            value={task.status}
+                            onChange={(e) =>
+                              updateTask(task._id, {
+                                status: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-deep)]"
+                          >
+                            <option value="todo">To-do</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                          </select>
+                        ) : (
+                          <span className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] font-heading font-semibold text-[var(--color-ink-muted)]">
+                            {task.status === "todo"
+                              ? "To-do"
+                              : task.status === "in_progress"
+                                ? "In Progress"
+                                : task.status === "pending"
+                                  ? "Pending"
+                                  : "Completed"}
+                          </span>
+                        )}
 
-      {/* Delete = admin/editor currently based on canEditResources.
+                        {/* Delete = admin/editor currently based on canEditResources.
           If you want deletion admin-only, see the change below. */}
-      {isAdmin && !isClosed && (
-        <button
-          onClick={() => deleteTask(task._id)}
-          className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
-          title="Delete task"
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
-    </div>
-  </div>
-))}
+                        {isAdmin && !isClosed && (
+                          <button
+                            onClick={() => deleteTask(task._id)}
+                            className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
+                            title="Delete task"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </Card>
@@ -512,28 +537,53 @@ export default function ProjectWorkspace({
           <Card className="p-6 space-y-4">
             <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Team Members</h3>
             <div className="space-y-3">
-              {project.members?.map((m) => (
-                <div
-                  key={m.user?._id || m._id}
-                  className="flex items-center justify-between p-3 rounded-[12px] bg-[var(--color-surface-muted)] border border-[var(--color-border)]"
-                >
-                  <div className="flex items-center gap-3">
-                    {m.user?.image ? (
-                      <img src={m.user.image} alt={m.user.name} className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] text-[#0B0B0A] font-heading font-bold text-xs flex items-center justify-center">
-                        {(m.user?.name || "U")[0].toUpperCase()}
+              {project.members?.map((m) => {
+                const memberId = m.user?._id || m._id;
+                const isSelf = String(memberId) === String(currentMember.user?._id || currentMember._id);
+                return (
+                  <div
+                    key={memberId}
+                    className="flex items-center justify-between p-3 rounded-[12px] bg-[var(--color-surface-muted)] border border-[var(--color-border)]"
+                  >
+                    <div className="flex items-center gap-3">
+                      {m.user?.image ? (
+                        <img src={m.user.image} alt={m.user.name} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] text-[#0B0B0A] font-heading font-bold text-xs flex items-center justify-center">
+                          {(m.user?.name || "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-heading font-semibold text-xs text-[var(--color-ink)]">{m.user?.name}</p>
+                        <p className="font-body text-[11px] text-[var(--color-ink-muted)]">{m.user?.email}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-heading font-semibold text-xs text-[var(--color-ink)]">{m.user?.name}</p>
-                      <p className="font-body text-[11px] text-[var(--color-ink-muted)]">{m.user?.email}</p>
                     </div>
-                  </div>
 
-                  <Badge role={m.role} />
-                </div>
-              ))}
+                    {isAdmin && !isSelf ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={m.role}
+                          onChange={(e) => changeMemberRole(memberId, e.target.value)}
+                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] font-heading font-semibold text-[var(--color-ink)]"
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="editor">Editor</option>
+                          <option value="viewer">Viewer</option>
+                        </select>
+                        <button
+                          onClick={() => removeMember(memberId)}
+                          className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
+                          title="Remove member"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <Badge role={m.role} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </Card>
         )}
@@ -541,7 +591,12 @@ export default function ProjectWorkspace({
         {/* 6. OTHER INFO TAB */}
         {tab === "otherInfo" && (
           <Card className="p-6">
-            <OtherInfoTab project={project} isAdmin={isAdmin} />
+            <OtherInfoTab
+              project={project}
+              isAdmin={isAdmin}
+              canEditResources={canEditResources}
+              onProjectUpdated={() => router.refresh()}
+            />
           </Card>
         )}
       </div>
