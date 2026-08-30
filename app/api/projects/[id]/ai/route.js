@@ -46,9 +46,9 @@ async function generateAI(prompt) {
 
     try {
 
-      console.log(
-        `PROJECT AI: Trying model ${model}`
-      );
+      // console.log(
+      //   `PROJECT AI: Trying model ${model}`
+      // );
 
       const response =
         await ai.models.generateContent({
@@ -58,9 +58,9 @@ async function generateAI(prompt) {
 
       if (response?.text) {
 
-        console.log(
-          `PROJECT AI: Success with ${model}`
-        );
+        // console.log(
+        //   `PROJECT AI: Success with ${model}`
+        // );
 
         return response.text;
       }
