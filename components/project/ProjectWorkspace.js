@@ -467,7 +467,7 @@ export default function ProjectWorkspace({
         {/* 4. AI ASSISTANT TAB */}
         {tab === "ai" && (
           <Card className="p-6">
-            <ProjectAI project={project._id} />
+            <ProjectAI projectId={project._id} />
           </Card>
         )}
 

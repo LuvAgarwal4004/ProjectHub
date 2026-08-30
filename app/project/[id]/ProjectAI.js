@@ -18,11 +18,14 @@ export default function ProjectAI({
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
-
+  console.log("PROJECT AI projectId:", projectId);
   async function askAI(customPrompt) {
     const finalPrompt = customPrompt || prompt.trim();
     if (!finalPrompt) return;
-
+    if (!projectId) {
+      toast.error("Project ID is missing.");
+      return;
+    }
     setLoading(true);
 
     try {
