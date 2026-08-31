@@ -7,25 +7,16 @@ import ProjectTask from "@/models/ProjectTask";
 
 import { authOptions } from "@/lib/authOptions";
 
-async function getMembership(
-  projectId,
-  userId
-) {
-  const project =
-    await Project.findById(
-      projectId
-    );
+async function getMembership(projectId, userId) {
+  const project = await Project.findById(projectId);
 
   if (!project) {
     return null;
   }
 
-  const member =
-    project.members.find(
-      (m) =>
-        String(m.user) ===
-        String(userId)
-    );
+  const member = project.members.find(
+    (m) => String(m.user) === String(userId)
+  );
 
   if (!member) {
     return null;
@@ -37,15 +28,11 @@ async function getMembership(
   };
 }
 
-export async function GET(
-  req,
-  { params }
-) {
+export async function GET(req, { params }) {
   try {
     const { id } = await params;
 
-    const session =
-      await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -56,11 +43,10 @@ export async function GET(
 
     await connectDB();
 
-    const membership =
-      await getMembership(
-        id,
-        session.user.id
-      );
+    const membership = await getMembership(
+      id,
+      session.user.id
+    );
 
     if (!membership) {
       return NextResponse.json(
@@ -69,53 +55,38 @@ export async function GET(
       );
     }
 
-    const tasks =
-      await ProjectTask.find({
-        project: id,
+    const tasks = await ProjectTask.find({
+      project: id,
+    })
+      .populate("assignees", "name email image")
+      .populate("createdBy", "name email image")
+      .sort({
+        priority: -1,
+        createdAt: -1,
       })
-        .populate(
-          "assignees",
-          "name email image"
-        )
-        .populate(
-          "createdBy",
-          "name email image"
-        )
-        .sort({
-          priority: -1,
-          createdAt: -1,
-        })
-        .lean();
+      .lean();
 
     return NextResponse.json({
       success: true,
       tasks,
     });
   } catch (error) {
-    console.error(
-      "GET TASKS ERROR:",
-      error
-    );
+    console.error("GET TASKS ERROR:", error);
 
     return NextResponse.json(
       {
-        error:
-          "Failed to fetch tasks",
+        error: "Failed to fetch tasks",
       },
       { status: 500 }
     );
   }
 }
 
-export async function POST(
-  req,
-  { params }
-) {
+export async function POST(req, { params }) {
   try {
     const { id } = await params;
 
-    const session =
-      await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -126,11 +97,10 @@ export async function POST(
 
     await connectDB();
 
-    const membership =
-      await getMembership(
-        id,
-        session.user.id
-      );
+    const membership = await getMembership(
+      id,
+      session.user.id
+    );
 
     if (!membership) {
       return NextResponse.json(
@@ -139,30 +109,34 @@ export async function POST(
       );
     }
 
-    if (
-      membership.member.role !==
-      "admin"
-    ) {
+    // ONLY ADMIN CAN CREATE TASKS
+    if (membership.member.role !== "admin") {
       return NextResponse.json(
         {
-          error:
-            "Only the admin can create tasks",
+          error: "Only the project admin can create tasks",
         },
         { status: 403 }
       );
     }
 
-    const body =
-      await req.json();
+    // Do not allow changes to a closed project
+    if (membership.project.status === "closed") {
+      return NextResponse.json(
+        {
+          error: "This project is closed",
+        },
+        { status: 403 }
+      );
+    }
 
-    const title =
-      body.title?.trim();
+    const body = await req.json();
+
+    const title = body.title?.trim();
 
     if (!title) {
       return NextResponse.json(
         {
-          error:
-            "Task title is required",
+          error: "Task title is required",
         },
         { status: 400 }
       );
@@ -173,63 +147,43 @@ export async function POST(
     // -----------------------------------------
 
     const projectMemberIds =
-      membership.project.members.map(
-        (member) =>
-          String(member.user)
+      membership.project.members.map((member) =>
+        String(member.user)
       );
 
-    const requestedAssignees =
-      Array.isArray(
-        body.assignees
-      )
-        ? body.assignees
-        : [];
+    const requestedAssignees = Array.isArray(
+      body.assignees
+    )
+      ? body.assignees
+      : [];
 
     const validAssignees =
-      requestedAssignees.filter(
-        (userId) =>
-          projectMemberIds.includes(
-            String(userId)
-          )
+      requestedAssignees.filter((userId) =>
+        projectMemberIds.includes(String(userId))
       );
 
-    const task =
-      await ProjectTask.create({
-        project: id,
+    const task = await ProjectTask.create({
+      project: id,
 
-        title,
+      title,
 
-        assignees:
-          validAssignees,
+      assignees: validAssignees,
 
-        deadlineDate:
-          body.deadlineDate || "",
+      deadlineDate: body.deadlineDate || "",
 
-        deadlineTime:
-          body.deadlineTime || "",
+      deadlineTime: body.deadlineTime || "",
 
-        status:
-          body.status || "todo",
+      status: body.status || "todo",
 
-        priority:
-          Boolean(body.priority),
+      priority: Boolean(body.priority),
 
-        createdBy:
-          session.user.id,
-      });
+      createdBy: session.user.id,
+    });
 
     const populatedTask =
-      await ProjectTask.findById(
-        task._id
-      )
-        .populate(
-          "assignees",
-          "name email image"
-        )
-        .populate(
-          "createdBy",
-          "name email image"
-        )
+      await ProjectTask.findById(task._id)
+        .populate("assignees", "name email image")
+        .populate("createdBy", "name email image")
         .lean();
 
     return NextResponse.json({
@@ -237,15 +191,11 @@ export async function POST(
       task: populatedTask,
     });
   } catch (error) {
-    console.error(
-      "CREATE TASK ERROR:",
-      error
-    );
+    console.error("CREATE TASK ERROR:", error);
 
     return NextResponse.json(
       {
-        error:
-          "Failed to create task",
+        error: "Failed to create task",
       },
       { status: 500 }
     );

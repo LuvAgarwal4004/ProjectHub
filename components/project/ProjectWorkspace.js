@@ -8,7 +8,7 @@ import FileTree from "./FileTree";
 import FileEditorModal from "./FileEditorModal";
 import MarkErrorModal from "./MarkErrorModal";
 import ProjectAI from "@/app/project/[id]/ProjectAI";
-
+import TaskDetailsModal from "./TaskDetailsModal";
 import {
   Settings,
   CheckCircle2,
@@ -49,23 +49,55 @@ export default function ProjectWorkspace({
   const router = useRouter();
 
   const [tab, setTab] = useState("overview");
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState(() =>
+    sortTasks(initialTasks)
+  );
   const [files, setFiles] = useState(initialFiles);
   const [links, setLinks] = useState(initialLinks);
 
   const [taskModal, setTaskModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const [fileModal, setFileModal] = useState(null);
   const [linkModal, setLinkModal] = useState(false);
   const [editorFile, setEditorFile] = useState(null);
   const [errorFile, setErrorFile] = useState(null);
 
   const isAdmin = currentMember.role === "admin";
+  const isEditor = currentMember.role === "editor";
+  const isViewer = currentMember.role === "viewer";
+
   const isClosed = project.status === "closed";
-  const canEditResources = !isClosed && ["admin", "editor"].includes(currentMember.role);
+
+  const canManageTasks =
+    !isClosed && (isAdmin || isEditor);
+
+  const canCreateTasks =
+    !isClosed && isAdmin;
+
+  const canDeleteTasks =
+    !isClosed && isAdmin;
+
+  const canEditResources =
+    !isClosed && (isAdmin || isEditor);
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((task) => task.status === "completed").length;
   const pendingTasks = tasks.filter((task) => task.status !== "completed").length;
+  function sortTasks(taskList) {
+    return [...taskList].sort((a, b) => {
+      // Priority tasks always come first
+      if (Boolean(a.priority) !== Boolean(b.priority)) {
+        return a.priority ? -1 : 1;
+      }
+
+      // Within the same priority group,
+      // newest tasks come first
+      return (
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+      );
+    });
+  }
 
   async function updateTask(taskId, update) {
     const res = await fetch(`/api/projects/${project._id}/tasks/${taskId}`, {
@@ -81,7 +113,13 @@ export default function ProjectWorkspace({
     }
 
     setTasks((prev) =>
-      prev.map((task) => (String(task._id) === String(taskId) ? data.task : task))
+      sortTasks(
+        prev.map((task) =>
+          String(task._id) === String(taskId)
+            ? data.task
+            : task
+        )
+      )
     );
   }
   async function changeMemberRole(userId, role) {
@@ -398,8 +436,12 @@ export default function ProjectWorkspace({
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading font-bold text-base text-[var(--color-ink)]">Project Tasks</h3>
-                {canEditResources && (
-                  <Button size="sm" variant="primary" onClick={() => setTaskModal(true)}>
+                {canCreateTasks && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => setTaskModal(true)}
+                  >
                     + Add Task
                   </Button>
                 )}
@@ -412,7 +454,11 @@ export default function ProjectWorkspace({
                   {tasks.map((task) => (
                     <div
                       key={task._id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-[10px] bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-xs font-body"
+                      onClick={() => setSelectedTask(task)}
+                      className={`group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-[10px] border text-xs font-body cursor-pointer transition ${task.priority
+                        ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm"
+                        : "border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface)]"
+                        }`}
                     >
                       {/* Task information */}
                       <div className="flex items-center gap-3 min-w-0">
@@ -428,21 +474,30 @@ export default function ProjectWorkspace({
                             }`}
                         />
 
-                        <span
-                          className={`font-heading font-medium truncate ${task.status === "completed"
-                            ? "line-through text-[var(--color-ink-soft)]"
-                            : "text-[var(--color-ink)]"
-                            }`}
-                        >
-                          {task.title}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {task.priority && (
+                            <span className="shrink-0 rounded-full bg-[var(--color-accent)]/25 border border-[var(--color-accent)]/40 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase text-[var(--color-accent-deep)]">
+                              Priority
+                            </span>
+                          )}
+
+                          <span
+                            className={`font-heading font-medium truncate ${task.status === "completed"
+                              ? "line-through text-[var(--color-ink-soft)]"
+                              : "text-[var(--color-ink)]"
+                              }`}
+                          >
+                            {task.title}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Task controls */}
                       <div className="flex items-center gap-2 shrink-0">
-                        {canEditResources ? (
+                        {canManageTasks ? (
                           <select
                             value={task.status}
+                            onClick={(e) => e.stopPropagation()}
                             onChange={(e) =>
                               updateTask(task._id, {
                                 status: e.target.value,
@@ -471,7 +526,10 @@ export default function ProjectWorkspace({
           If you want deletion admin-only, see the change below. */}
                         {isAdmin && !isClosed && (
                           <button
-                            onClick={() => deleteTask(task._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTask(task._id);
+                            }}
                             className="text-[var(--color-ink-soft)] hover:text-[var(--color-danger)] p-1 transition"
                             title="Delete task"
                           >
@@ -628,14 +686,22 @@ export default function ProjectWorkspace({
           </Card>
         )}
       </div>
-
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
       {/* Modals */}
       {taskModal && (
         <CreateTaskModal
           project={project}
           onClose={() => setTaskModal(false)}
           onCreated={(newTask) => {
-            setTasks((prev) => [newTask, ...prev]);
+            setTasks((prev) =>
+              sortTasks([newTask, ...prev])
+            );
+
             setTaskModal(false);
           }}
         />

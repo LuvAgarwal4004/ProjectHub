@@ -7,35 +7,6 @@ import ProjectTask from "@/models/ProjectTask";
 
 import { authOptions } from "@/lib/authOptions";
 
-async function getAdmin(
-  projectId,
-  userId
-) {
-  const project =
-    await Project.findById(
-      projectId
-    );
-
-  if (!project) {
-    return null;
-  }
-
-  const member =
-    project.members.find(
-      (m) =>
-        String(m.user) ===
-        String(userId)
-    );
-
-  if (
-    !member ||
-    member.role !== "admin"
-  ) {
-    return null;
-  }
-
-  return project;
-}
 async function getTaskManager(projectId, userId) {
   const project = await Project.findById(projectId);
 
@@ -47,10 +18,7 @@ async function getTaskManager(projectId, userId) {
     (m) => String(m.user) === String(userId)
   );
 
-  if (
-    !member ||
-    !["admin", "editor"].includes(member.role)
-  ) {
+  if (!member) {
     return null;
   }
 
@@ -59,18 +27,30 @@ async function getTaskManager(projectId, userId) {
     member,
   };
 }
-export async function PATCH(
-  req,
-  { params }
-) {
-  try {
-    const {
-      id,
-      taskId,
-    } = await params;
 
-    const session =
-      await getServerSession(authOptions);
+async function getAdmin(projectId, userId) {
+  const project = await Project.findById(projectId);
+
+  if (!project) {
+    return null;
+  }
+
+  const member = project.members.find(
+    (m) => String(m.user) === String(userId)
+  );
+
+  if (!member || member.role !== "admin") {
+    return null;
+  }
+
+  return project;
+}
+
+export async function PATCH(req, { params }) {
+  try {
+    const { id, taskId } = await params;
+
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -81,25 +61,21 @@ export async function PATCH(
 
     await connectDB();
 
-    // const project =
-    //   await getAdmin(
-    //     id,
-    //     session.user.id
-    //   );
     const membership = await getTaskManager(
       id,
       session.user.id
     );
-    // if (!project) {
-    //   return NextResponse.json(
-    //     {
-    //       error:
-    //         "Only the project admin can manage tasks",
-    //     },
-    //     { status: 403 }
-    //   );
-    // }
-    if (!membership) {
+
+    // -----------------------------------------
+    // ONLY ADMIN + EDITOR CAN UPDATE TASKS
+    // -----------------------------------------
+
+    if (
+      !membership ||
+      !["admin", "editor"].includes(
+        membership.member.role
+      )
+    ) {
       return NextResponse.json(
         {
           error:
@@ -109,9 +85,25 @@ export async function PATCH(
       );
     }
 
-    const project = membership.project;
-    const body =
-      await req.json();
+    // -----------------------------------------
+    // CLOSED PROJECTS CANNOT BE EDITED
+    // -----------------------------------------
+
+    if (membership.project.status === "closed") {
+      return NextResponse.json(
+        {
+          error: "This project is closed",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+
+    // -----------------------------------------
+    // VALIDATE STATUS
+    // -----------------------------------------
+
     if (
       body.status !== undefined &&
       ![
@@ -128,6 +120,11 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // -----------------------------------------
+    // ALLOWED FIELDS
+    // -----------------------------------------
+
     const allowed = [
       "title",
       "assignees",
@@ -139,64 +136,68 @@ export async function PATCH(
 
     const update = {};
 
-    for (
-      const field of allowed
-    ) {
-      if (
-        body[field] !==
-        undefined
-      ) {
-        update[field] =
-          body[field];
+    for (const field of allowed) {
+      if (body[field] !== undefined) {
+        update[field] = body[field];
       }
+    }
+
+    // -----------------------------------------
+    // PRIORITY IS ADMIN-ONLY
+    // -----------------------------------------
+
+    if (
+      update.priority !== undefined &&
+      membership.member.role !== "admin"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Only the project admin can change task priority",
+        },
+        { status: 403 }
+      );
     }
 
     // -----------------------------------------
     // VALIDATE ASSIGNEES
     // -----------------------------------------
 
-    if (
-      update.assignees !==
-      undefined
-    ) {
+    if (update.assignees !== undefined) {
       const memberIds =
-        project.members.map(
-          (member) =>
-            String(member.user)
+        membership.project.members.map(
+          (member) => String(member.user)
         );
 
-      update.assignees =
-        Array.isArray(
-          update.assignees
-        )
-          ? update.assignees.filter(
-            (userId) =>
-              memberIds.includes(
-                String(userId)
-              )
+      update.assignees = Array.isArray(
+        update.assignees
+      )
+        ? update.assignees.filter((userId) =>
+            memberIds.includes(String(userId))
           )
-          : [];
+        : [];
     }
 
-    if (
-      update.title !==
-      undefined
-    ) {
-      update.title =
-        String(
-          update.title
-        ).trim();
+    // -----------------------------------------
+    // VALIDATE TITLE
+    // -----------------------------------------
+
+    if (update.title !== undefined) {
+      update.title = String(update.title).trim();
 
       if (!update.title) {
         return NextResponse.json(
           {
-            error:
-              "Task title cannot be empty",
+            error: "Task title cannot be empty",
           },
           { status: 400 }
         );
       }
     }
+
+    // -----------------------------------------
+    // FIND + UPDATE TASK
+    // -----------------------------------------
 
     const task =
       await ProjectTask.findOneAndUpdate(
@@ -222,7 +223,9 @@ export async function PATCH(
 
     if (!task) {
       return NextResponse.json(
-        { error: "Task not found" },
+        {
+          error: "Task not found",
+        },
         { status: 404 }
       );
     }
@@ -239,26 +242,18 @@ export async function PATCH(
 
     return NextResponse.json(
       {
-        error:
-          "Failed to update task",
+        error: "Failed to update task",
       },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(
-  req,
-  { params }
-) {
+export async function DELETE(req, { params }) {
   try {
-    const {
-      id,
-      taskId,
-    } = await params;
+    const { id, taskId } = await params;
 
-    const session =
-      await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -269,11 +264,14 @@ export async function DELETE(
 
     await connectDB();
 
-    const project =
-      await getAdmin(
-        id,
-        session.user.id
-      );
+    // -----------------------------------------
+    // ONLY ADMIN CAN DELETE
+    // -----------------------------------------
+
+    const project = await getAdmin(
+      id,
+      session.user.id
+    );
 
     if (!project) {
       return NextResponse.json(
@@ -285,19 +283,29 @@ export async function DELETE(
       );
     }
 
-    const deleted =
-      await ProjectTask.findOneAndDelete(
+    // -----------------------------------------
+    // CLOSED PROJECTS CANNOT BE MODIFIED
+    // -----------------------------------------
+
+    if (project.status === "closed") {
+      return NextResponse.json(
         {
-          _id: taskId,
-          project: id,
-        }
+          error: "This project is closed",
+        },
+        { status: 403 }
       );
+    }
+
+    const deleted =
+      await ProjectTask.findOneAndDelete({
+        _id: taskId,
+        project: id,
+      });
 
     if (!deleted) {
       return NextResponse.json(
         {
-          error:
-            "Task not found",
+          error: "Task not found",
         },
         { status: 404 }
       );
@@ -314,8 +322,7 @@ export async function DELETE(
 
     return NextResponse.json(
       {
-        error:
-          "Failed to delete task",
+        error: "Failed to delete task",
       },
       { status: 500 }
     );
