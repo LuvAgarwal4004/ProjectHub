@@ -15,34 +15,26 @@ export default function LinkModal({
   const [loading, setLoading] = useState(false);
 
   async function submit(e) {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    const res = await fetch(
-      `/api/projects/${project._id}/links`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          url,
-          description,
-        }),
-      }
-    );
+  const res = await fetch(`/api/projects/${project._id}/links`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, url, description }),
+  });
 
-    const data = await res.json();
-    setLoading(false);
+  const data = await res.json();
+  setLoading(false);
 
-    if (!res.ok) {
-      alert(data.error || "Could not add link");
-      return;
-    }
-
-    onCreated(data.link);
+  if (!res.ok) {
+    alert(data.error || "Could not add link");
+    return;
   }
+
+  onCreated(data.link);
+  onClose();   // <-- add this line
+}
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs font-body">

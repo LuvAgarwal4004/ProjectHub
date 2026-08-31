@@ -155,11 +155,10 @@ export default function OtherInfoTab({
         {/* Judges Card */}
         <div
           onClick={() => setActiveSubTab("judges")}
-          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
-            activeSubTab === "judges"
+          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${activeSubTab === "judges"
               ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
               : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
@@ -180,11 +179,10 @@ export default function OtherInfoTab({
         {/* Certificates Card */}
         <div
           onClick={() => setActiveSubTab("certificates")}
-          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
-            activeSubTab === "certificates"
+          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${activeSubTab === "certificates"
               ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
               : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
@@ -206,11 +204,10 @@ export default function OtherInfoTab({
         {/* Money Status & Ads Card */}
         <div
           onClick={() => setActiveSubTab("money")}
-          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${
-            activeSubTab === "money"
+          className={`cursor-pointer rounded-2xl border p-5 transition duration-200 ${activeSubTab === "money"
               ? "border-[var(--color-accent-deep)] bg-[var(--color-accent)]/15 shadow-sm ring-2 ring-[var(--color-accent)]/30"
               : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent-deep)] hover:shadow-xs"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-accent-deep)] border border-[var(--color-accent)]/30">
@@ -237,11 +234,10 @@ export default function OtherInfoTab({
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setActiveSubTab("judges")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
-              activeSubTab === "judges"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${activeSubTab === "judges"
                 ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
                 : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
-            }`}
+              }`}
           >
             <Award size={15} />
             Judges ({judges.length})
@@ -249,11 +245,10 @@ export default function OtherInfoTab({
 
           <button
             onClick={() => setActiveSubTab("certificates")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
-              activeSubTab === "certificates"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${activeSubTab === "certificates"
                 ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
                 : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
-            }`}
+              }`}
           >
             <FileCheck size={15} />
             Certificates ({certificates.length})
@@ -261,11 +256,10 @@ export default function OtherInfoTab({
 
           <button
             onClick={() => setActiveSubTab("money")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${
-              activeSubTab === "money"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-heading font-semibold transition ${activeSubTab === "money"
                 ? "bg-[var(--color-accent)] text-[#0B0B0A] shadow-xs"
                 : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
-            }`}
+              }`}
           >
             <Wallet size={15} />
             Money Status & Ads
@@ -732,11 +726,10 @@ export default function OtherInfoTab({
                     <div
                       className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
                       style={{
-                        width: `${
-                          prizeMoney > 0
+                        width: `${prizeMoney > 0
                             ? Math.min(100, (receivedAmount / prizeMoney) * 100)
                             : 0
-                        }%`,
+                          }%`,
                       }}
                     />
                   </div>
@@ -888,8 +881,7 @@ export default function OtherInfoTab({
       {/* ========================================================= */}
       {judgeModalState && (
         <JudgeModal
-          projectId={project._id}
-          judge={judgeModalState === "create" ? null : judgeModalState}
+          project={project} judge={judgeModalState === "create" ? null : judgeModalState}
           isOpen={Boolean(judgeModalState)}
           onClose={() => setJudgeModalState(null)}
           onSaved={(savedJudge) => {
@@ -910,8 +902,7 @@ export default function OtherInfoTab({
 
       {certModalState && (
         <CertificateModal
-          projectId={project._id}
-          certificate={certModalState === "create" ? null : certModalState}
+          project={project} certificate={certModalState === "create" ? null : certModalState}
           isOpen={Boolean(certModalState)}
           onClose={() => setCertModalState(null)}
           onSaved={(savedCert) => {
@@ -932,8 +923,7 @@ export default function OtherInfoTab({
 
       {moneyModalOpen && (
         <MoneyStatusModal
-          projectId={project._id}
-          moneyStatus={moneyStatus}
+          project={project} moneyStatus={moneyStatus}
           isOpen={moneyModalOpen}
           onClose={() => setMoneyModalOpen(false)}
           onSaved={(updatedStatus) => {
@@ -946,8 +936,7 @@ export default function OtherInfoTab({
 
       {adModalState && (
         <AdModal
-          projectId={project._id}
-          ad={adModalState === "create" ? null : adModalState}
+          project={project} ad={adModalState === "create" ? null : adModalState}
           isOpen={Boolean(adModalState)}
           onClose={() => setAdModalState(null)}
           onSaved={(updatedStatus) => {

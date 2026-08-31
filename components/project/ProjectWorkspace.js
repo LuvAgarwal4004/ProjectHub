@@ -711,7 +711,7 @@ export default function ProjectWorkspace({
         <FileModal
           project={project}
           onClose={() => setFileModal(null)}
-          onFileUploaded={(newFile) => setFiles((prev) => [newFile, ...prev])}
+          onCreated={(newFile) => setFiles((prev) => [newFile, ...prev])}
         />
       )}
 
@@ -719,7 +719,7 @@ export default function ProjectWorkspace({
         <LinkModal
           project={project}
           onClose={() => setLinkModal(false)}
-          onLinkAdded={(newLink) => setLinks((prev) => [newLink, ...prev])}
+          onCreated={(newLink) => setLinks((prev) => [newLink, ...prev])}
         />
       )}
 
@@ -728,9 +728,14 @@ export default function ProjectWorkspace({
           file={editorFile}
           project={project}
           onClose={() => setEditorFile(null)}
-          onSaved={(updated) =>
-            setFiles((prev) => prev.map((f) => (String(f._id) === String(updated._id) ? updated : f)))
-          }
+          onUpdated={(updated, opts = {}) => {
+            setFiles((prev) =>
+              prev.map((f) => (String(f._id) === String(updated._id) ? updated : f))
+            );
+            if (!opts.keepOpen) {
+              setEditorFile(null);
+            }
+          }}
         />
       )}
 
