@@ -151,7 +151,18 @@ export default function ProjectSettings({ project, userProjects = [] }) {
     window.open(`https://wa.me/?text=${message}`, "_blank");
   }
 
-  async function changeRole(userId, newRole) {
+  async function changeRole(userId, newRole, memberName, currentRole) {
+    if (newRole === currentRole) return;
+
+    const confirmed = confirm(
+      `Change ${memberName || "this member"}'s role from "${currentRole}" to "${newRole}"?`
+    );
+
+    if (!confirmed) {
+      router.refresh();
+      return;
+    }
+
     const res = await fetch(
       `/api/projects/${project._id}/members/${userId}`,
       {
@@ -164,6 +175,7 @@ export default function ProjectSettings({ project, userProjects = [] }) {
     const data = await res.json();
     if (!res.ok) {
       toast.error(data.error || "Could not change role");
+      router.refresh();
       return;
     }
 
@@ -512,7 +524,9 @@ export default function ProjectSettings({ project, userProjects = [] }) {
                     {!isMemberAdmin && (
                       <select
                         value={member.role}
-                        onChange={(e) => changeRole(memberUser._id, e.target.value)}
+                        onChange={(e) =>
+                          changeRole(memberUser._id, e.target.value, memberUser.name, member.role)
+                        }
                         className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-heading text-[var(--color-ink)] outline-none"
                       >
                         <option value="editor">Editor</option>

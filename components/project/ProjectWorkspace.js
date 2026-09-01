@@ -169,15 +169,27 @@ export default function ProjectWorkspace({
       )
     );
   }
-  async function changeMemberRole(userId, role) {
+  async function changeMemberRole(userId, newRole, memberName, currentRole) {
+    if (newRole === currentRole) return;
+
+    const confirmed = confirm(
+      `Change ${memberName || "this member"}'s role from "${currentRole}" to "${newRole}"?`
+    );
+
+    if (!confirmed) {
+      router.refresh();
+      return;
+    }
+
     const res = await fetch(`/api/projects/${project._id}/members/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ role: newRole }),
     });
     const data = await res.json();
     if (!res.ok) {
       toast.error(data.error || "Could not change role");
+      router.refresh();
       return;
     }
     toast.success("Role updated");
@@ -696,7 +708,7 @@ export default function ProjectWorkspace({
                       <div className="flex items-center gap-2">
                         <select
                           value={m.role}
-                          onChange={(e) => changeMemberRole(memberId, e.target.value)}
+                          onChange={(e) => changeMemberRole(memberId, e.target.value, m.user?.name, m.role)}
                           className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] font-heading font-semibold text-[var(--color-ink)]"
                         >
                           <option value="admin">Admin</option>
