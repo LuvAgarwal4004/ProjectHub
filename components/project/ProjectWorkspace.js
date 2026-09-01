@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import FileTree from "./FileTree";
 import FileEditorModal from "./FileEditorModal";
@@ -48,7 +48,35 @@ export default function ProjectWorkspace({
 }) {
   const router = useRouter();
 
-  const [tab, setTab] = useState("overview");
+  const searchParams = useSearchParams();
+
+  const validTabs = [
+    "overview",
+    "files",
+    "links",
+    "ai",
+    "members",
+    "otherInfo",
+  ];
+
+  const getTabFromUrl = () => {
+    const urlTab = searchParams.get("tab");
+
+    return validTabs.includes(urlTab)
+      ? urlTab
+      : "overview";
+  };
+
+  const [tab, setTab] = useState(getTabFromUrl);
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+
+    if (validTabs.includes(urlTab)) {
+      setTab(urlTab);
+    } else {
+      setTab("overview");
+    }
+  }, [searchParams]);
   const [tasks, setTasks] = useState(() =>
     sortTasks(initialTasks)
   );
@@ -98,7 +126,26 @@ export default function ProjectWorkspace({
       );
     });
   }
+  function handleTabChange(nextTab) {
+    setTab(nextTab);
 
+    const params = new URLSearchParams(window.location.search);
+
+    if (nextTab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", nextTab);
+    }
+
+    const queryString = params.toString();
+
+    router.replace(
+      queryString
+        ? `/project/${project._id}?${queryString}`
+        : `/project/${project._id}`,
+      { scroll: false }
+    );
+  }
   async function updateTask(taskId, update) {
     const res = await fetch(`/api/projects/${project._id}/tasks/${taskId}`, {
       method: "PATCH",
@@ -378,7 +425,7 @@ export default function ProjectWorkspace({
           {tabList.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => handleTabChange(t.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-heading whitespace-nowrap transition ${tab === t.id
                 ? "bg-[var(--color-accent)] text-[#0B0B0A] font-bold shadow-xs"
                 : "font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
